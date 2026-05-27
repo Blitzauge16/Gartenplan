@@ -12,6 +12,8 @@ Test
 
 ## frontend
 
+starten indem man ng serve startet
+
 ### einrichten 
 1. node.js einrichten https://nodejs.org/en/download/current
 2. npm install @angular/cli ausführen
