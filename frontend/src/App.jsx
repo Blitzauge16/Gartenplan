@@ -1,121 +1,94 @@
 import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
 import './App.css'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [selectedElement, setSelectedElement] = useState(null)
+  const [elements, setElements] = useState([
+    { id: 1, name: 'Tomate', x: 100, y: 100, color: '#FF6B6B' },
+    { id: 2, name: 'Salat', x: 250, y: 150, color: '#4ECDC4' },
+    { id: 3, name: 'Karotte', x: 150, y: 300, color: '#FFE66D' },
+  ])
+
+  const handleElementClick = (id) => {
+    setSelectedElement(id)
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="app-container">
+      <h1>🌱 Gartenplan - Interaktiv</h1>
+      
+      <div className="main-layout">
+        {/* SVG Canvas */}
+        <div className="canvas-section">
+          <svg width="600" height="400" viewBox="0 0 600 400" className="garden-svg">
+            {/* Garten Rahmen */}
+            <rect x="20" y="20" width="560" height="360" fill="#E8F5E9" stroke="#2E7D32" strokeWidth="2" />
+            
+            {/* Gartenbeet Wege */}
+            <line x1="300" y1="20" x2="300" y2="380" stroke="#A1887F" strokeWidth="3" />
+            <line x1="20" y1="200" x2="580" y2="200" stroke="#A1887F" strokeWidth="3" />
 
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
+            {/* Pflanzen */}
+            {elements.map((element) => (
+              <g key={element.id}>
+                {/* Pflanze Kreis */}
+                <circle
+                  cx={element.x}
+                  cy={element.y}
+                  r="30"
+                  fill={element.color}
+                  stroke={selectedElement === element.id ? '#000' : '#333'}
+                  strokeWidth={selectedElement === element.id ? '3' : '2'}
+                  onClick={() => handleElementClick(element.id)}
+                  style={{ cursor: 'pointer', transition: 'stroke 0.2s' }}
+                />
+                {/* Label */}
+                <text
+                  x={element.x}
+                  y={element.y + 50}
+                  textAnchor="middle"
+                  fontSize="12"
+                  fill="#333"
+                  pointerEvents="none"
+                >
+                  {element.name}
+                </text>
+              </g>
+            ))}
           </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
+        {/* Control Panel */}
+        <aside className="control-panel">
+          <h2>📋 Element-Manager</h2>
+          
+          {selectedElement ? (
+            <div className="properties">
+              <h3>Eigenschaften</h3>
+              <p><strong>Element:</strong> {elements.find(e => e.id === selectedElement)?.name}</p>
+              <p><strong>Position:</strong> X: {elements.find(e => e.id === selectedElement)?.x}, Y: {elements.find(e => e.id === selectedElement)?.y}</p>
+              <button onClick={() => setSelectedElement(null)}>Deselektieren</button>
+            </div>
+          ) : (
+            <p>Klick auf ein Element um Details zu sehen</p>
+          )}
+
+          <h3>Alle Elemente</h3>
+          <ul className="elements-list">
+            {elements.map((element) => (
+              <li
+                key={element.id}
+                onClick={() => handleElementClick(element.id)}
+                className={selectedElement === element.id ? 'active' : ''}
+              >
+                <span className="color-dot" style={{ backgroundColor: element.color }}></span>
+                {element.name}
+              </li>
+            ))}
+          </ul>
+        </aside>
+      </div>
+    </div>
   )
 }
 
