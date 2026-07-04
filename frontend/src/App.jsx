@@ -1,9 +1,12 @@
 import { useState } from 'react'
 import './App.css'
+import InteractiveMap from './components/InteractiveMap'
+import DetailPage from './components/DetailPage'
 
 function App() {
   const [selectedElement, setSelectedElement] = useState(null)
-  const [elements, setElements] = useState([
+  const [selectedHotspot, setSelectedHotspot] = useState(null)
+  const [elements] = useState([
     { id: 1, name: 'Tomate', x: 100, y: 100, color: '#FF6B6B' },
     { id: 2, name: 'Salat', x: 250, y: 150, color: '#4ECDC4' },
     { id: 3, name: 'Karotte', x: 150, y: 300, color: '#FFE66D' },
@@ -13,10 +16,21 @@ function App() {
     setSelectedElement(id)
   }
 
+  if (selectedHotspot) {
+    return <DetailPage hotspotId={selectedHotspot} onBack={() => setSelectedHotspot(null)} />
+  }
+
   return (
     <div className="app-container">
       <h1>🌱 Gartenplan - Interaktiv</h1>
-      
+
+      <section className="probe-section">
+        <h2>Probe: Grundstücksplan aus SVG</h2>
+        <div className="image-card">
+          <InteractiveMap onHotspotClick={(h) => setSelectedHotspot(h.id)} />
+        </div>
+      </section>
+
       <div className="main-layout">
         {/* SVG Canvas */}
         <div className="canvas-section">
