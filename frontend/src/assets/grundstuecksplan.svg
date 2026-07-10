@@ -43,22 +43,23 @@
      inkscape:groupmode="layer"
      id="layer1">
     <rect
-       style="fill:#501616;stroke-width:0.253477"
+       style="fill:#501616;stroke-width:0.253477;cursor:pointer"
        id="rect1"
        width="128.44238"
        height="49.315987"
        x="82.806686"
        y="224.86617"
-       onclick="setShowSecondDetailPage(true); setShowDetailPage(false)">
+       onclick="window.handleSvgHotspotClick('rect1')">
       <title
          id="title3">rect1</title>
     </rect>
     <rect
-       style="fill:#501616;stroke-width:0.250571"
+       style="fill:#501616;stroke-width:0.250571;cursor:pointer"
        id="rect2"
        width="128.44238"
        height="2.9442377"
        x="80.966545"
-       y="293.68774" />
+       y="293.68774"
+       onclick="window.handleSvgHotspotClick('rect2')" />
   </g>
 </svg>
