@@ -15,10 +15,11 @@ export default function InteractiveMap({ onHotspotClick }) {
     .replace(/<!--([\s\S]*?)-->/g, '')
 
   return (
-    <div
-      className="asset-svg"
-      dangerouslySetInnerHTML={{ __html: preparedSvg }}
-      style={{ maxWidth: '100%', height: 'auto' }}
-    />
+    <div className="svg-wrapper">
+      <div
+        className="asset-svg"
+        dangerouslySetInnerHTML={{ __html: preparedSvg }}
+      />
+    </div>
   )
 }
