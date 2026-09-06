@@ -1,19 +1,30 @@
 const hotspotMeta = {
   haus: {
     title: 'Haus',
-    description: 'Hier stehen Pflanzen, die du bearbeiten oder beschreiben möchtest.',
   },
   schuppen: {
-    title: 'schuppen',
-    description: 'Dieser Bereich ist als Weg oder Abgrenzung definiert.',
+    title: 'Schuppen',
   },
-  'clickable-area': {
-    title: 'Hauptfläche',
-    description: 'Das ist die große Fläche im Gartenplan.',
+  schuppenanbau: {
+    title: 'Schuppenanbau',
   },
-  'clickable-area-2': {
-    title: 'Nebenzone',
-    description: 'Der zweite Bereich mit eigener Detailseite.',
+  garage: {
+    title: 'Garage'
+  },
+  gewaechshaus: {
+    title: 'Gewächshaus',
+  },
+  holzschuppen: {
+    title: 'Holzschuppen',
+  },
+  'haus-varanda': {
+    title: 'Haus',
+  },
+  'haus-tuer': {
+    title: 'Haus',
+  },
+  sitzecke: {
+    title: 'Sitzecke',
   },
 };
 

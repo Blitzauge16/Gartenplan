@@ -53,6 +53,7 @@
   justify-content: center;
   align-items: center;
   min-height: 420px;
+  width: 100%;
   overflow: hidden;
 }
 
@@ -63,11 +64,17 @@
   background: #ffffff;
 }
 
-.asset-svg {
+.svg-wrapper svg {
   width: 100%;
   height: auto;
   display: block;
-  transition: transform 0.2s ease;
+}
+
+.asset-svg {
+  max-width: 100%;
+  height: auto;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 
