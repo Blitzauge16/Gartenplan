@@ -1,0 +1,18 @@
+services:
+  db:
+    image: postgres:17-alpine
+    container_name: gartenplan-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: gartenplan
+      POSTGRES_PASSWORD: gartenplan
+      POSTGRES_DB: gartenplan
+    ports:
+      - "5432:5432"
+    volumes:
+      - gartenplan-pgdata:/var/lib/postgresql/data
+      # Schema wird beim allerersten Start automatisch eingespielt
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+
+volumes:
+  gartenplan-pgdata:

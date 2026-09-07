@@ -8,10 +8,14 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
-// Test-Route
-app.get('/api/gardens', (req, res) => {
+app.get('/api/health', (req, res) => {
   res.json({ message: 'Gartenplan API läuft!' });
 });
+
+app.use('/api/orte', require('./routes/orte'));
+app.use('/api/gewaechse', require('./routes/gewaechse'));
+app.use('/api/typen', require('./routes/typen'));
+app.use('/api/gepflanzt', require('./routes/gepflanzt'));
 
 app.listen(PORT, () => {
   console.log(`Backend läuft auf http://localhost:${PORT}`);
