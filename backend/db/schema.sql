@@ -8,8 +8,12 @@
 CREATE TABLE IF NOT EXISTS ort (
   id            SERIAL PRIMARY KEY,
   x_koordinate  DOUBLE PRECISION NOT NULL,
-  y_koordinate  DOUBLE PRECISION NOT NULL
+  y_koordinate  DOUBLE PRECISION NOT NULL,
+  bereich       TEXT
 );
+
+-- Für Datenbanken, die vor Einführung der Spalte angelegt wurden
+ALTER TABLE ort ADD COLUMN IF NOT EXISTS bereich TEXT;
 
 CREATE TABLE IF NOT EXISTS gewaechs (
   id                 SERIAL PRIMARY KEY,
@@ -44,3 +48,4 @@ CREATE TABLE IF NOT EXISTS gewaechs_typ (
 
 CREATE INDEX IF NOT EXISTS idx_gepflanzt_ort ON gepflanzt(ort_id);
 CREATE INDEX IF NOT EXISTS idx_gepflanzt_gewaechs ON gepflanzt(gewaechs_id);
+CREATE INDEX IF NOT EXISTS idx_ort_bereich ON ort(bereich);

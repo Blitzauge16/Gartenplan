@@ -1,11 +1,17 @@
+// Routen für die Tabelle "ort" (Entität Ort aus dem ER-Modell).
+// Ein Ort ist eine Position im Gartenplan (x/y-Koordinate), an der
+// Gewächse gepflanzt werden können. Eingebunden unter /api/orte.
 const express = require('express');
 const pool = require('../db/connection');
 const router = express.Router();
 
-// GET alle Orte
+// GET alle Orte, optional gefiltert nach Bereich: /api/orte?bereich=gewaechshaus
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM ort ORDER BY id');
+    const { bereich } = req.query;
+    const { rows } = bereich
+      ? await pool.query('SELECT * FROM ort WHERE bereich = $1 ORDER BY id', [bereich])
+      : await pool.query('SELECT * FROM ort ORDER BY id');
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -23,13 +29,13 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST neuer Ort
+// POST neuer Ort ("bereich" ist die Hotspot-ID des Areals, z. B. "gewaechshaus")
 router.post('/', async (req, res) => {
-  const { x_koordinate, y_koordinate } = req.body;
+  const { x_koordinate, y_koordinate, bereich } = req.body;
   try {
     const { rows } = await pool.query(
-      'INSERT INTO ort (x_koordinate, y_koordinate) VALUES ($1, $2) RETURNING *',
-      [x_koordinate, y_koordinate]
+      'INSERT INTO ort (x_koordinate, y_koordinate, bereich) VALUES ($1, $2, $3) RETURNING *',
+      [x_koordinate, y_koordinate, bereich]
     );
     res.status(201).json(rows[0]);
   } catch (err) {
@@ -37,13 +43,13 @@ router.post('/', async (req, res) => {
   }
 });
 
-// PUT Ort ändern
+// PUT Ort ändern (z. B. wenn eine Pflanze im Editor verschoben wird)
 router.put('/:id', async (req, res) => {
-  const { x_koordinate, y_koordinate } = req.body;
+  const { x_koordinate, y_koordinate, bereich } = req.body;
   try {
     const { rows } = await pool.query(
-      'UPDATE ort SET x_koordinate = $1, y_koordinate = $2 WHERE id = $3 RETURNING *',
-      [x_koordinate, y_koordinate, req.params.id]
+      'UPDATE ort SET x_koordinate = $1, y_koordinate = $2, bereich = $3 WHERE id = $4 RETURNING *',
+      [x_koordinate, y_koordinate, bereich, req.params.id]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Ort nicht gefunden' });
     res.json(rows[0]);

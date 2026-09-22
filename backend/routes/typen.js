@@ -1,3 +1,7 @@
+// Routen für die Tabelle "typ" (Entität Typ aus dem ER-Modell).
+// Typen sind Kategorien wie z. B. "Staude", "Gemüse", "Obstbaum" und
+// werden Gewächsen über /api/gewaechse/:id/typen zugeordnet.
+// Eingebunden unter /api/typen.
 const express = require('express');
 const pool = require('../db/connection');
 const router = express.Router();

@@ -1,8 +1,13 @@
+// Routen für die Tabelle "gewaechs" (Entität Gewächs aus dem ER-Modell)
+// inklusive der n:m-Beziehung "haben" zu den Typen (Tabelle gewaechs_typ).
+// Eingebunden unter /api/gewaechse.
 const express = require('express');
 const pool = require('../db/connection');
 const router = express.Router();
 
-// Basis-Query: Gewächs inkl. seiner Typen (Beziehung "haben")
+// Basis-Query: Gewächs inkl. seiner Typen (Beziehung "haben").
+// json_agg fasst alle Typen eines Gewächses zu einem JSON-Array zusammen;
+// der FILTER verhindert [null] bei Gewächsen ohne Typ.
 const GEWAECHS_SELECT = `
   SELECT g.*,
          COALESCE(

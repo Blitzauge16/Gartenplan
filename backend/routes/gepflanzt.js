@@ -1,8 +1,12 @@
+// Routen für die Tabelle "gepflanzt" — die n:m-Beziehung zwischen Ort und
+// Gewächs aus dem ER-Modell, mit den Beziehungsattributen Datum und Notizen.
+// Ein Eintrag bedeutet: dieses Gewächs wurde an diesem Ort (ggf. an diesem
+// Datum) gepflanzt. Eingebunden unter /api/gepflanzt.
 const express = require('express');
 const pool = require('../db/connection');
 const router = express.Router();
 
-// GET alle Pflanzungen (mit Ort- und Gewächsdaten)
+// GET alle Pflanzungen (mit Ort- und Gewächsdaten als verschachtelte Objekte)
 router.get('/', async (req, res) => {
   try {
     const { rows } = await pool.query(`
@@ -32,6 +36,29 @@ router.get('/ort/:ortId', async (req, res) => {
        WHERE p.ort_id = $1
        ORDER BY p.datum DESC NULLS LAST, p.id DESC`,
       [req.params.ortId]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET alles, was in einem Bereich (Hotspot-ID, z. B. "gewaechshaus") gepflanzt ist —
+// mit Ort-Koordinaten für den Bereichs-Editor im Frontend
+router.get('/bereich/:bereich', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT p.id, p.datum, p.notizen,
+              json_build_object('id', o.id, 'x_koordinate', o.x_koordinate,
+                                'y_koordinate', o.y_koordinate, 'bereich', o.bereich) AS ort,
+              json_build_object('id', g.id, 'name', g.name, 'lateinischer_name', g.lateinischer_name,
+                                'bluehzeit', g.bluehzeit, 'benoetigtes_licht', g.benoetigtes_licht) AS gewaechs
+       FROM gepflanzt p
+       JOIN ort o ON o.id = p.ort_id
+       JOIN gewaechs g ON g.id = p.gewaechs_id
+       WHERE o.bereich = $1
+       ORDER BY p.id`,
+      [req.params.bereich]
     );
     res.json(rows);
   } catch (err) {

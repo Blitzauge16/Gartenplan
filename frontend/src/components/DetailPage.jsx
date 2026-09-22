@@ -1,33 +1,45 @@
+import { useNavigate, useParams } from 'react-router-dom'
 import hotspotMeta from '../data/hotspotMeta'
+import AreaEditor from './AreaEditor'
 
-export default function DetailPage({ hotspotId, onBack }) {
+export default function DetailPage() {
+  const { hotspotId } = useParams()
+  const navigate = useNavigate()
   const meta = hotspotMeta[hotspotId]
-  const isSelected = Boolean(hotspotId)
+
+  if (!meta) {
+    return (
+      <div className="detail-page">
+        <div className="detail-header">
+          <h2>Bereich nicht gefunden</h2>
+          <button type="button" className="back-button" onClick={() => navigate('/')}>
+            ← Zurück zum Plan
+          </button>
+        </div>
+        <div className="detail-card">
+          <p>Für „{hotspotId}“ gibt es keinen Eintrag in hotspotMeta.js.</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="detail-page">
       <div className="detail-header">
-        <h2>{isSelected ? meta?.title : 'Wähle einen Bereich aus'}</h2>
-        {isSelected && (
-          <button type="button" className="back-button" onClick={onBack}>
-            ← Zurück
-          </button>
-        )}
+        <h2>{meta.title}</h2>
+        <button type="button" className="back-button" onClick={() => navigate('/')}>
+          ← Zurück zum Plan
+        </button>
       </div>
 
-      {isSelected ? (
-        <>
-          <p className="detail-key">Hotspot-ID: {hotspotId}</p>
-          <div className="detail-card">
-            <p>{meta?.description}</p>
-            <p><strong>Tipp:</strong> Du kannst weitere Informationen in `hotspotMeta.js` ergänzen.</p>
-          </div>
-        </>
-      ) : (
+      <p className="detail-key">Hotspot-ID: {hotspotId}</p>
+      {meta.description && (
         <div className="detail-card">
-          <p>Wähle einen klickbaren Bereich im Gartenplan aus, um ihn genauer zu beschreiben.</p>
+          <p>{meta.description}</p>
         </div>
       )}
+
+      <AreaEditor bereich={hotspotId} />
     </div>
   )
 }

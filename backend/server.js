@@ -1,3 +1,7 @@
+// Einstiegspunkt des Backends.
+// Startet den Express-Server, aktiviert CORS (damit das Frontend auf
+// localhost:5173 die API aufrufen darf) und bindet alle Routen unter /api/* ein.
+// Konfiguration (PORT, DATABASE_URL) kommt aus backend/.env.
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
