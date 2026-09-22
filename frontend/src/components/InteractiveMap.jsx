@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react'
 import svgMarkup from '../assets/grundstuecksplan.svg?raw'
-import hotspotMeta from '../data/hotspotMeta'
+import hotspotMeta, { resolveHotspotId } from '../data/hotspotMeta'
 
 const preparedSvg = svgMarkup
   .replace(/^<\?xml[^>]*\?>/, '')
@@ -25,7 +25,8 @@ export default function InteractiveMap({ onHotspotClick }) {
       while (el && el !== container) {
         const label = el.getAttribute?.('inkscape:label')
         if (label && hotspotMeta[label]) {
-          onHotspotClick(label)
+          // Teilflächen (alias) führen zum Hauptbereich, z. B. haus_tuer -> haus
+          onHotspotClick(resolveHotspotId(label))
           return
         }
         el = el.parentElement

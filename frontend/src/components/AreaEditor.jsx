@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { extractArea } from '../utils/svgArea'
+import { labelsForBereich } from '../data/hotspotMeta'
 import { api } from '../api'
 
 // Editor für ein Areal: zeigt die Form des Bereichs (aus der Master-SVG) und
@@ -21,7 +22,8 @@ export default function AreaEditor({ bereich }) {
   const suppressClickRef = useRef(false)
 
   useEffect(() => {
-    setArea(extractArea(bereich))
+    // Ein Bereich kann mehrere Teilflächen umfassen (z. B. haus + haus_varanda + haus_tuer)
+    setArea(extractArea(labelsForBereich(bereich)))
   }, [bereich])
 
   const loadData = useCallback(async () => {
@@ -171,7 +173,7 @@ export default function AreaEditor({ bereich }) {
           onPointerUp={handlePointerUp}
           style={{ cursor: selectedGewaechs ? 'crosshair' : 'default' }}
         >
-          <g opacity="0.45" dangerouslySetInnerHTML={{ __html: area.shapeMarkup }} />
+          <g className="area-shape" dangerouslySetInnerHTML={{ __html: area.shapeMarkup }} />
           {pflanzungen.map((p) => (
             <g
               key={p.id}

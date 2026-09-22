@@ -152,6 +152,14 @@
   touch-action: none;
 }
 
+.area-shape {
+  opacity: 0.5;
+}
+
+.area-shape * {
+  fill-opacity: 1 !important;
+}
+
 .plant-marker {
   cursor: grab;
 }

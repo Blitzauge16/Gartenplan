@@ -1,11 +1,18 @@
-import { useNavigate, useParams } from 'react-router-dom'
-import hotspotMeta from '../data/hotspotMeta'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import hotspotMeta, { resolveHotspotId } from '../data/hotspotMeta'
 import AreaEditor from './AreaEditor'
 
 export default function DetailPage() {
   const { hotspotId } = useParams()
   const navigate = useNavigate()
   const meta = hotspotMeta[hotspotId]
+
+  // Teilflächen-URLs (z. B. /bereich/haus_tuer) auf den Hauptbereich umleiten,
+  // damit es pro Bereich genau eine URL und einen Datenbestand gibt
+  const hauptbereich = resolveHotspotId(hotspotId)
+  if (meta && hauptbereich !== hotspotId) {
+    return <Navigate to={`/bereich/${hauptbereich}`} replace />
+  }
 
   if (!meta) {
     return (

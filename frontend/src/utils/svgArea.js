@@ -1,11 +1,15 @@
 // Extrahiert die Form eines Areals aus dem Gesamtplan (grundstuecksplan.svg).
-// Die Master-SVG bleibt die einzige Quelle für Geometrie: Wir suchen das Element
-// mit dem passenden inkscape:label, messen es im Browser (getBBox/getScreenCTM)
+// Die Master-SVG bleibt die einzige Quelle für Geometrie: Wir suchen die Elemente
+// mit den passenden inkscape:labels, messen sie im Browser (getBBox/getScreenCTM)
 // und geben Markup + passgenaue viewBox zurück — alles in Plan-Koordinaten,
 // also demselben Koordinatensystem, in dem die Orte im Backend gespeichert werden.
+// Ein Bereich kann aus mehreren Teilflächen bestehen (z. B. haus + haus_varanda
+// + haus_tuer); dann wird die kombinierte Form mit gemeinsamer Bounding-Box geliefert.
 import svgMarkup from '../assets/grundstuecksplan.svg?raw'
 
-export function extractArea(label) {
+export function extractArea(labels) {
+  const wanted = new Set(Array.isArray(labels) ? labels : [labels])
+
   const doc = new DOMParser().parseFromString(svgMarkup, 'image/svg+xml')
   const root = document.importNode(doc.documentElement, true)
 
@@ -17,42 +21,55 @@ export function extractArea(label) {
   document.body.appendChild(holder)
 
   try {
-    const el = [...root.querySelectorAll('*')].find(
-      (node) => node.getAttribute && node.getAttribute('inkscape:label') === label
+    const elements = [...root.querySelectorAll('*')].filter(
+      (node) => node.getAttribute && wanted.has(node.getAttribute('inkscape:label'))
     )
-    if (!el || typeof el.getBBox !== 'function') return null
+    if (elements.length === 0) return null
 
     const rootInverse = root.getScreenCTM()?.inverse()
-    const elMatrix = el.getScreenCTM()
-    const parentMatrix = el.parentNode.getScreenCTM()
-    if (!rootInverse || !elMatrix || !parentMatrix) return null
+    if (!rootInverse) return null
 
-    // Matrix vom lokalen Koordinatensystem des Elements in Plan-Koordinaten
-    // (inkl. eigener transform) — für die Bounding-Box.
-    const toPlan = rootInverse.multiply(elMatrix)
-    // Matrix des Eltern-Layers (ohne eigene transform des Elements) —
-    // als Wrapper, weil el.outerHTML seine eigene transform schon enthält.
-    const parentToPlan = rootInverse.multiply(parentMatrix)
+    const serializer = new XMLSerializer()
+    let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
+    let shapeMarkup = ''
 
-    const bbox = el.getBBox()
-    const corners = [
-      [bbox.x, bbox.y],
-      [bbox.x + bbox.width, bbox.y],
-      [bbox.x, bbox.y + bbox.height],
-      [bbox.x + bbox.width, bbox.y + bbox.height],
-    ].map(([x, y]) => new DOMPoint(x, y).matrixTransform(toPlan))
+    for (const el of elements) {
+      if (typeof el.getBBox !== 'function') continue
+      const elMatrix = el.getScreenCTM()
+      const parentMatrix = el.parentNode.getScreenCTM()
+      if (!elMatrix || !parentMatrix) continue
 
-    const minX = Math.min(...corners.map((p) => p.x))
-    const maxX = Math.max(...corners.map((p) => p.x))
-    const minY = Math.min(...corners.map((p) => p.y))
-    const maxY = Math.max(...corners.map((p) => p.y))
+      // Matrix vom lokalen Koordinatensystem des Elements in Plan-Koordinaten
+      // (inkl. eigener transform) — für die Bounding-Box.
+      const toPlan = rootInverse.multiply(elMatrix)
+      // Matrix des Eltern-Layers (ohne eigene transform des Elements) —
+      // als Wrapper, weil das serialisierte Element seine transform schon enthält.
+      const m = rootInverse.multiply(parentMatrix)
+
+      const bbox = el.getBBox()
+      const corners = [
+        [bbox.x, bbox.y],
+        [bbox.x + bbox.width, bbox.y],
+        [bbox.x, bbox.y + bbox.height],
+        [bbox.x + bbox.width, bbox.y + bbox.height],
+      ].map(([x, y]) => new DOMPoint(x, y).matrixTransform(toPlan))
+
+      for (const p of corners) {
+        minX = Math.min(minX, p.x)
+        maxX = Math.max(maxX, p.x)
+        minY = Math.min(minY, p.y)
+        maxY = Math.max(maxY, p.y)
+      }
+
+      shapeMarkup +=
+        `<g transform="matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})">` +
+        serializer.serializeToString(el) +
+        '</g>'
+    }
+
+    if (!shapeMarkup) return null
+
     const pad = Math.max(maxX - minX, maxY - minY) * 0.08
-
-    const m = parentToPlan
-    const shapeMarkup =
-      `<g transform="matrix(${m.a} ${m.b} ${m.c} ${m.d} ${m.e} ${m.f})">` +
-      new XMLSerializer().serializeToString(el) +
-      '</g>'
 
     return {
       shapeMarkup,
