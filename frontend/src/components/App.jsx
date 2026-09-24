@@ -1,5 +1,6 @@
 import { Routes, Route, useNavigate } from 'react-router-dom'
 import './App.css'
+import Sidebar from './Sidebar'
 import InteractiveMap from './InteractiveMap'
 import DetailPage from './DetailPage'
 
@@ -20,13 +21,16 @@ function MapPage() {
 
 function App() {
   return (
-    <div className="app-container">
-      <h1>🌱 Gartenplan</h1>
+    <div className="app-wrapper">
+      <Sidebar />
+      <div className="app-container">
+        <h1>🌱 Gartenplan</h1>
 
-      <Routes>
-        <Route path="/" element={<MapPage />} />
-        <Route path="/bereich/:hotspotId" element={<DetailPage />} />
-      </Routes>
+        <Routes>
+          <Route path="/" element={<MapPage />} />
+          <Route path="/bereich/:hotspotId" element={<DetailPage />} />
+        </Routes>
+      </div>
     </div>
   )
 }
