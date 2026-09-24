@@ -3,6 +3,7 @@ import './App.css'
 import Sidebar from './Sidebar'
 import InteractiveMap from './InteractiveMap'
 import DetailPage from './DetailPage'
+import PflanzenPage from './PflanzenPage'
 
 function MapPage() {
   const navigate = useNavigate()
@@ -28,6 +29,7 @@ function App() {
 
         <Routes>
           <Route path="/" element={<MapPage />} />
+          <Route path="/bereich/pflanzen" element={<PflanzenPage />} />
           <Route path="/bereich/:hotspotId" element={<DetailPage />} />
         </Routes>
       </div>
