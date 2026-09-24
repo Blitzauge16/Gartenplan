@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { extractArea } from '../utils/svgArea'
 import { labelsForBereich } from '../data/hotspotMeta'
 import { api } from '../api'
+import CreatePlantModal from './CreatePlantModal'
 
 // Editor für ein Areal: zeigt die Form des Bereichs (aus der Master-SVG) und
 // erlaubt, Pflanzen per Klick zu platzieren und per Drag zu verschieben.
@@ -13,7 +14,7 @@ export default function AreaEditor({ bereich }) {
   const [gewaechse, setGewaechse] = useState([])
   const [selectedGewaechs, setSelectedGewaechs] = useState('')
   const [selectedPflanzungId, setSelectedPflanzungId] = useState(null)
-  const [form, setForm] = useState({ name: '', lateinischer_name: '', bluehzeit: '' })
+  const [showCreateModal, setShowCreateModal] = useState(false)
   const [apiError, setApiError] = useState(null)
   const [saving, setSaving] = useState(false)
 
@@ -127,17 +128,9 @@ export default function AreaEditor({ bereich }) {
     }
   }
 
-  const handleCreateGewaechs = async (event) => {
-    event.preventDefault()
-    if (!form.name.trim()) return
-    try {
-      const neu = await api.createGewaechs(form)
-      setForm({ name: '', lateinischer_name: '', bluehzeit: '' })
-      await loadData()
-      setSelectedGewaechs(String(neu.id))
-    } catch (err) {
-      setApiError(err.message)
-    }
+  const handlePlantCreated = async (neu) => {
+    await loadData()
+    setSelectedGewaechs(String(neu.id))
   }
 
   const handleDelete = async (pflanzung) => {
@@ -227,35 +220,20 @@ export default function AreaEditor({ bereich }) {
         </div>
 
         <div className="editor-box">
-          <h3>Neue Pflanze anlegen</h3>
-          <form onSubmit={handleCreateGewaechs}>
-            <label htmlFor="neu-name">Name*</label>
-            <input
-              id="neu-name"
-              value={form.name}
-              onChange={(e) => setForm({ ...form, name: e.target.value })}
-              placeholder="z. B. Lavendel"
-              required
-            />
-            <label htmlFor="neu-lat">Lateinischer Name</label>
-            <input
-              id="neu-lat"
-              value={form.lateinischer_name}
-              onChange={(e) => setForm({ ...form, lateinischer_name: e.target.value })}
-              placeholder="z. B. Lavandula angustifolia"
-            />
-            <label htmlFor="neu-bluehzeit">Blühzeit</label>
-            <input
-              id="neu-bluehzeit"
-              value={form.bluehzeit}
-              onChange={(e) => setForm({ ...form, bluehzeit: e.target.value })}
-              placeholder="z. B. Juni–August"
-            />
-            <button type="submit" className="editor-button">
-              Anlegen
-            </button>
-          </form>
+          <button
+            type="button"
+            className="editor-button editor-button-full"
+            onClick={() => setShowCreateModal(true)}
+          >
+            + Neue Pflanze anlegen
+          </button>
         </div>
+
+        <CreatePlantModal
+          isOpen={showCreateModal}
+          onClose={() => setShowCreateModal(false)}
+          onCreated={handlePlantCreated}
+        />
 
         {selectedPflanzung && (
           <div className="editor-box">

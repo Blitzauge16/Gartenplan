@@ -21,7 +21,7 @@ function MapPage() {
 function App() {
   return (
     <div className="app-container">
-      <h1>🌱 Gartenplan - Interaktiv</h1>
+      <h1>🌱 Gartenplan</h1>
 
       <Routes>
         <Route path="/" element={<MapPage />} />
