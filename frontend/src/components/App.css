@@ -388,6 +388,111 @@
   width: 100%;
 }
 
+/* Pflanzenliste (Drag & Drop-Quelle) */
+.plant-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  max-height: 260px;
+  overflow-y: auto;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: white;
+}
+
+.plant-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-bottom: 1px solid #eef2f7;
+  cursor: grab;
+  user-select: none;
+  touch-action: none;
+}
+
+.plant-list-item:last-child {
+  border-bottom: none;
+}
+
+.plant-list-item:hover {
+  background: #eef2ff;
+}
+
+.plant-list-item-dragging {
+  opacity: 0.5;
+  cursor: grabbing;
+}
+
+.plant-list-icon {
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.plant-list-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.plant-list-name {
+  font-size: 0.95rem;
+  color: #222;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plant-list-latin {
+  font-size: 0.78rem;
+  color: #777;
+  font-style: italic;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.plant-list-empty {
+  padding: 12px 10px;
+  font-size: 0.85rem;
+  color: #888;
+  text-align: center;
+}
+
+/* Fläche als Drop-Ziel hervorheben */
+.area-canvas-droptarget {
+  border-color: #4ade80;
+  box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.35);
+}
+
+/* Geist-Icon, das beim Ziehen der Maus folgt */
+.drag-ghost {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.95);
+  border: 2px solid #94a3b8;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+  font-size: 0.9rem;
+  color: #333;
+  white-space: nowrap;
+}
+
+.drag-ghost-ok {
+  border-color: #166534;
+  background: rgba(220, 252, 231, 0.95);
+}
+
+.drag-ghost-icon {
+  font-size: 1.3rem;
+}
+
 /* Modal */
 .modal-backdrop {
   position: fixed;
