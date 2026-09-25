@@ -26,11 +26,14 @@ async function request(path, options = {}) {
 export const api = {
   getGewaechse: () => request('/gewaechse'),
   createGewaechs: (data) => request('/gewaechse', { method: 'POST', body: data }),
+  updateGewaechs: (id, data) => request(`/gewaechse/${id}`, { method: 'PUT', body: data }),
+  deleteGewaechs: (id) => request(`/gewaechse/${id}`, { method: 'DELETE' }),
 
   createOrt: (data) => request('/orte', { method: 'POST', body: data }),
   updateOrt: (id, data) => request(`/orte/${id}`, { method: 'PUT', body: data }),
   deleteOrt: (id) => request(`/orte/${id}`, { method: 'DELETE' }),
 
   getPflanzungenForBereich: (bereich) => request(`/gepflanzt/bereich/${bereich}`),
+  getPflanzungenForGewaechs: (gewaechsId) => request(`/gepflanzt/gewaechs/${gewaechsId}`),
   createPflanzung: (data) => request('/gepflanzt', { method: 'POST', body: data }),
 }

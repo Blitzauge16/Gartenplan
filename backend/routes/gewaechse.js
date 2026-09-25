@@ -77,14 +77,32 @@ router.put('/:id', async (req, res) => {
   }
 });
 
-// DELETE Gewächs
+// DELETE Gewächs — löscht auch seine Pflanzungen (CASCADE) und die Orte,
+// an denen sonst nichts mehr steht, damit keine verwaisten Marker bleiben.
 router.delete('/:id', async (req, res) => {
+  const client = await pool.connect();
   try {
-    const { rowCount } = await pool.query('DELETE FROM gewaechs WHERE id = $1', [req.params.id]);
-    if (rowCount === 0) return res.status(404).json({ error: 'Gewächs nicht gefunden' });
+    await client.query('BEGIN');
+    await client.query(
+      `DELETE FROM ort
+       WHERE id IN (SELECT ort_id FROM gepflanzt WHERE gewaechs_id = $1)
+         AND NOT EXISTS (
+           SELECT 1 FROM gepflanzt p WHERE p.ort_id = ort.id AND p.gewaechs_id <> $1
+         )`,
+      [req.params.id]
+    );
+    const { rowCount } = await client.query('DELETE FROM gewaechs WHERE id = $1', [req.params.id]);
+    if (rowCount === 0) {
+      await client.query('ROLLBACK');
+      return res.status(404).json({ error: 'Gewächs nicht gefunden' });
+    }
+    await client.query('COMMIT');
     res.status(204).end();
   } catch (err) {
+    await client.query('ROLLBACK');
     res.status(500).json({ error: err.message });
+  } finally {
+    client.release();
   }
 });
 

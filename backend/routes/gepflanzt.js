@@ -66,6 +66,25 @@ router.get('/bereich/:bereich', async (req, res) => {
   }
 });
 
+// GET alle Pflanzungen eines Gewächses (wo steht diese Pflanze überall?)
+router.get('/gewaechs/:gewaechsId', async (req, res) => {
+  try {
+    const { rows } = await pool.query(
+      `SELECT p.id, p.datum, p.notizen,
+              json_build_object('id', o.id, 'x_koordinate', o.x_koordinate,
+                                'y_koordinate', o.y_koordinate, 'bereich', o.bereich) AS ort
+       FROM gepflanzt p
+       JOIN ort o ON o.id = p.ort_id
+       WHERE p.gewaechs_id = $1
+       ORDER BY o.bereich, p.id`,
+      [req.params.gewaechsId]
+    );
+    res.json(rows);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // POST neue Pflanzung
 router.post('/', async (req, res) => {
   const { ort_id, gewaechs_id, datum, notizen } = req.body;
