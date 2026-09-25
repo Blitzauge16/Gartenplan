@@ -74,6 +74,14 @@
   transition: color 0.2s;
 }
 
+.sidebar-category:has(.sidebar-list) .sidebar-category-header {
+  justify-content: space-between;
+}
+
+.sidebar-category:not(:has(.sidebar-list)) .sidebar-category-header {
+  justify-content: center;
+}
+
 .sidebar-category-header:hover {
   color: #e2e8f0;
 }
@@ -132,6 +140,7 @@
 
 .sidebar.sidebar-collapsed .sidebar-text {
   display: none;
+  justify-content: center;
 }
 
 /* App Container */

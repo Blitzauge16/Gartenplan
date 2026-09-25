@@ -3,6 +3,7 @@ import { extractArea } from '../utils/svgArea'
 import { labelsForBereich } from '../data/hotspotMeta'
 import { api } from '../api'
 import CreatePlantModal from './CreatePlantModal'
+import PlantDetailModal from './PlantDetailModal'
 
 // Editor für ein Areal: zeigt die Form des Bereichs (aus der Master-SVG) und
 // erlaubt, Pflanzen per Klick zu platzieren und per Drag zu verschieben.
@@ -246,6 +247,11 @@ export default function AreaEditor({ bereich }) {
                 Gepflanzt am {new Date(selectedPflanzung.datum).toLocaleDateString('de-DE')}
               </p>
             )}
+            <button
+              type="button"
+              className="editor-button">
+              Bearbeiten
+            </button>
             <button
               type="button"
               className="editor-button editor-button-danger"

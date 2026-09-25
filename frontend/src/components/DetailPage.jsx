@@ -39,7 +39,6 @@ export default function DetailPage() {
         </button>
       </div>
 
-      <p className="detail-key">Hotspot-ID: {hotspotId}</p>
       {meta.description && (
         <div className="detail-card">
           <p>{meta.description}</p>
