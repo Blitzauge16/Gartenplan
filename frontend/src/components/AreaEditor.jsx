@@ -16,6 +16,7 @@ export default function AreaEditor({ bereich }) {
   const [selectedGewaechs, setSelectedGewaechs] = useState('')
   const [selectedPflanzungId, setSelectedPflanzungId] = useState(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [showDetailModal, setShowDetailModal] = useState(false)
   const [apiError, setApiError] = useState(null)
   const [saving, setSaving] = useState(false)
 
@@ -236,6 +237,19 @@ export default function AreaEditor({ bereich }) {
           onCreated={handlePlantCreated}
         />
 
+        {showDetailModal && selectedPflanzung && (
+          <PlantDetailModal
+            gewaechs={selectedPflanzung.gewaechs}
+            onClose={() => setShowDetailModal(false)}
+            onSaved={loadData}
+            onDeleted={() => {
+              setShowDetailModal(false)
+              setSelectedPflanzungId(null)
+              loadData()
+            }}
+          />
+        )}
+
         {selectedPflanzung && (
           <div className="editor-box">
             <h3>{selectedPflanzung.gewaechs.name}</h3>
@@ -249,7 +263,9 @@ export default function AreaEditor({ bereich }) {
             )}
             <button
               type="button"
-              className="editor-button">
+              className="editor-button"
+              onClick={() => setShowDetailModal(true)}
+            >
               Bearbeiten
             </button>
             <button
