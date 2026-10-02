@@ -5,24 +5,41 @@ const express = require('express');
 const pool = require('../db/connection');
 const router = express.Router();
 
-// Basis-Query: Gewächs inkl. seiner Typen (Beziehung "haben").
+// Basis-Query: Gewächs inkl. seiner Typen (Beziehung "haben") und der URL
+// seines Icons (NULL = Standard-Icon).
 // json_agg fasst alle Typen eines Gewächses zu einem JSON-Array zusammen;
 // der FILTER verhindert [null] bei Gewächsen ohne Typ.
 const GEWAECHS_SELECT = `
   SELECT g.*,
+         CASE WHEN i.id IS NULL THEN NULL ELSE '/uploads/icons/' || i.dateiname END AS icon_url,
          COALESCE(
            json_agg(json_build_object('id', t.id, 'name', t.name)) FILTER (WHERE t.id IS NOT NULL),
            '[]'
          ) AS typen
   FROM gewaechs g
+  LEFT JOIN icon i ON i.id = g.icon_id
   LEFT JOIN gewaechs_typ gt ON gt.gewaechs_id = g.id
   LEFT JOIN typ t ON t.id = gt.typ_id
 `;
+const GEWAECHS_GROUP_BY = 'GROUP BY g.id, i.id';
+
+// Leere Strings/undefined für icon_id als NULL behandeln, sonst als Zahl
+const parseIconId = (value) => {
+  if (value === undefined || value === null || value === '') return null;
+  const n = Number(value);
+  return Number.isInteger(n) ? n : null;
+};
+
+// Ein einzelnes Gewächs nach Änderung erneut inkl. icon_url/typen laden
+async function fetchGewaechs(id) {
+  const { rows } = await pool.query(`${GEWAECHS_SELECT} WHERE g.id = $1 ${GEWAECHS_GROUP_BY}`, [id]);
+  return rows[0] ?? null;
+}
 
 // GET alle Gewächse
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await pool.query(`${GEWAECHS_SELECT} GROUP BY g.id ORDER BY g.name`);
+    const { rows } = await pool.query(`${GEWAECHS_SELECT} ${GEWAECHS_GROUP_BY} ORDER BY g.name`);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -32,12 +49,9 @@ router.get('/', async (req, res) => {
 // GET ein Gewächs
 router.get('/:id', async (req, res) => {
   try {
-    const { rows } = await pool.query(
-      `${GEWAECHS_SELECT} WHERE g.id = $1 GROUP BY g.id`,
-      [req.params.id]
-    );
-    if (rows.length === 0) return res.status(404).json({ error: 'Gewächs nicht gefunden' });
-    res.json(rows[0]);
+    const row = await fetchGewaechs(req.params.id);
+    if (!row) return res.status(404).json({ error: 'Gewächs nicht gefunden' });
+    res.json(row);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -45,15 +59,16 @@ router.get('/:id', async (req, res) => {
 
 // POST neues Gewächs
 router.post('/', async (req, res) => {
-  const { name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen } = req.body;
+  const { name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen, icon_id } =
+    req.body;
   if (!name) return res.status(400).json({ error: 'name ist erforderlich' });
   try {
     const { rows } = await pool.query(
-      `INSERT INTO gewaechs (name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen)
-       VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
-      [name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen]
+      `INSERT INTO gewaechs (name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen, icon_id)
+       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
+      [name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen, parseIconId(icon_id)]
     );
-    res.status(201).json(rows[0]);
+    res.status(201).json(await fetchGewaechs(rows[0].id));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -61,17 +76,27 @@ router.post('/', async (req, res) => {
 
 // PUT Gewächs ändern
 router.put('/:id', async (req, res) => {
-  const { name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen } = req.body;
+  const { name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen, icon_id } =
+    req.body;
   try {
     const { rows } = await pool.query(
       `UPDATE gewaechs
        SET name = $1, lateinischer_name = $2, herkunft = $3,
-           benoetigtes_licht = $4, bluehzeit = $5, notizen = $6
-       WHERE id = $7 RETURNING *`,
-      [name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen, req.params.id]
+           benoetigtes_licht = $4, bluehzeit = $5, notizen = $6, icon_id = $7
+       WHERE id = $8 RETURNING id`,
+      [
+        name,
+        lateinischer_name,
+        herkunft,
+        benoetigtes_licht,
+        bluehzeit,
+        notizen,
+        parseIconId(icon_id),
+        req.params.id,
+      ]
     );
     if (rows.length === 0) return res.status(404).json({ error: 'Gewächs nicht gefunden' });
-    res.json(rows[0]);
+    res.json(await fetchGewaechs(rows[0].id));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

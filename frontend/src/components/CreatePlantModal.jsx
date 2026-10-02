@@ -1,5 +1,16 @@
 import { useState } from 'react'
 import { api } from '../api'
+import IconPicker from './IconPicker'
+
+const EMPTY_FORM = {
+  name: '',
+  lateinischer_name: '',
+  herkunft: '',
+  benoetigtes_licht: '',
+  bluehzeit: '',
+  notizen: '',
+  icon_id: null,
+}
 
 // Wiederverwendbares Modal zum Anlegen einer neuen Pflanze.
 // Kann von jeder Seite aus importiert und verwendet werden.
@@ -14,14 +25,7 @@ import { api } from '../api'
 //     onCreated={(pflanze) => console.log('Angelegt:', pflanze)}
 //   />
 export default function CreatePlantModal({ isOpen, onClose, onCreated }) {
-  const [form, setForm] = useState({
-    name: '',
-    lateinischer_name: '',
-    herkunft: '',
-    benoetigtes_licht: '',
-    bluehzeit: '',
-    notizen: '',
-  })
+  const [form, setForm] = useState(EMPTY_FORM)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
 
@@ -35,14 +39,7 @@ export default function CreatePlantModal({ isOpen, onClose, onCreated }) {
     setError(null)
     try {
       const neu = await api.createGewaechs(form)
-      setForm({
-        name: '',
-        lateinischer_name: '',
-        herkunft: '',
-        benoetigtes_licht: '',
-        bluehzeit: '',
-        notizen: '',
-      })
+      setForm(EMPTY_FORM)
       onCreated?.(neu)
       onClose()
     } catch (err) {
@@ -141,6 +138,11 @@ export default function CreatePlantModal({ isOpen, onClose, onCreated }) {
                 rows={3}
               />
             </div>
+
+            <IconPicker
+              value={form.icon_id}
+              onChange={(icon_id) => setForm((f) => ({ ...f, icon_id }))}
+            />
           </div>
 
           <div className="modal-footer">

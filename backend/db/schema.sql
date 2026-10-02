@@ -15,6 +15,15 @@ CREATE TABLE IF NOT EXISTS ort (
 -- Für Datenbanken, die vor Einführung der Spalte angelegt wurden
 ALTER TABLE ort ADD COLUMN IF NOT EXISTS bereich TEXT;
 
+-- Hochgeladene Icons (runde Bildausschnitte). Die Bilddatei liegt unter
+-- backend/uploads/icons/<dateiname>, die Datenbank speichert nur die Metadaten.
+CREATE TABLE IF NOT EXISTS icon (
+  id           SERIAL PRIMARY KEY,
+  name         TEXT NOT NULL,
+  dateiname    TEXT NOT NULL UNIQUE,
+  erstellt_am  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
 CREATE TABLE IF NOT EXISTS gewaechs (
   id                 SERIAL PRIMARY KEY,
   name               TEXT NOT NULL,
@@ -22,8 +31,12 @@ CREATE TABLE IF NOT EXISTS gewaechs (
   herkunft           TEXT,
   benoetigtes_licht  TEXT,
   bluehzeit          TEXT,
-  notizen            TEXT
+  notizen            TEXT,
+  icon_id            INTEGER REFERENCES icon(id) ON DELETE SET NULL
 );
+
+-- Für Datenbanken, die vor Einführung der Spalte angelegt wurden
+ALTER TABLE gewaechs ADD COLUMN IF NOT EXISTS icon_id INTEGER REFERENCES icon(id) ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS typ (
   id    SERIAL PRIMARY KEY,

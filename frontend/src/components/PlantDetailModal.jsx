@@ -2,11 +2,15 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
 import hotspotMeta from '../data/hotspotMeta'
+import IconPicker from './IconPicker'
 
 const FIELDS = ['name', 'lateinischer_name', 'herkunft', 'benoetigtes_licht', 'bluehzeit', 'notizen']
 
 function toForm(gewaechs) {
-  return Object.fromEntries(FIELDS.map((f) => [f, gewaechs[f] ?? '']))
+  return {
+    ...Object.fromEntries(FIELDS.map((f) => [f, gewaechs[f] ?? ''])),
+    icon_id: gewaechs.icon_id ?? null,
+  }
 }
 
 // Gruppiert Pflanzungen nach Bereich; bei mehreren im selben Bereich wird durchnummeriert
@@ -135,6 +139,10 @@ export default function PlantDetailModal({ gewaechs, onClose, onSaved, onDeleted
                 <label htmlFor="edit-notizen">Notizen</label>
                 <textarea id="edit-notizen" value={form.notizen} onChange={set('notizen')} rows={4} />
               </div>
+              <IconPicker
+                value={form.icon_id}
+                onChange={(icon_id) => setForm((f) => ({ ...f, icon_id }))}
+              />
             </div>
 
             <div className="plant-detail-standorte">

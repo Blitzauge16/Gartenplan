@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { extractArea } from '../utils/svgArea'
 import { labelsForBereich } from '../data/hotspotMeta'
-import { api } from '../api'
+import { api, assetUrl } from '../api'
 import CreatePlantModal from './CreatePlantModal'
 import PlantDetailModal from './PlantDetailModal'
 
@@ -213,30 +213,53 @@ export default function AreaEditor({ bereich }) {
           onPointerUp={handlePointerUp}
         >
           <g className="area-shape" dangerouslySetInnerHTML={{ __html: area.shapeMarkup }} />
-          {pflanzungen.map((p) => (
-            <g
-              key={p.id}
-              className="plant-marker"
-              transform={`translate(${p.ort.x_koordinate} ${p.ort.y_koordinate})`}
-              onPointerDown={(e) => startDrag(e, p)}
-            >
-              <circle
-                r={markerRadius}
-                fill={p.id === selectedPflanzungId ? '#4ade80' : '#ffffff'}
-                stroke="#166534"
-                strokeWidth={markerRadius * 0.12}
-              />
-              <text
-                textAnchor="middle"
-                dominantBaseline="central"
-                fontSize={markerRadius * 1.2}
-                style={{ pointerEvents: 'none', userSelect: 'none' }}
+          <defs>
+            {/* Runde Maske für Marker mit eigenem Icon-Bild */}
+            <clipPath id={`marker-clip-${bereich}`}>
+              <circle r={markerRadius * 0.88} />
+            </clipPath>
+          </defs>
+          {pflanzungen.map((p) => {
+            const iconUrl = assetUrl(p.gewaechs.icon_url)
+            const selected = p.id === selectedPflanzungId
+            return (
+              <g
+                key={p.id}
+                className="plant-marker"
+                transform={`translate(${p.ort.x_koordinate} ${p.ort.y_koordinate})`}
+                onPointerDown={(e) => startDrag(e, p)}
               >
-                🌱
-              </text>
-              <title>{p.gewaechs.name}</title>
-            </g>
-          ))}
+                <circle
+                  r={markerRadius}
+                  fill={selected ? '#4ade80' : '#ffffff'}
+                  stroke="#166534"
+                  strokeWidth={markerRadius * 0.12}
+                />
+                {iconUrl ? (
+                  <image
+                    href={iconUrl}
+                    x={-markerRadius * 0.88}
+                    y={-markerRadius * 0.88}
+                    width={markerRadius * 1.76}
+                    height={markerRadius * 1.76}
+                    clipPath={`url(#marker-clip-${bereich})`}
+                    preserveAspectRatio="xMidYMid slice"
+                    style={{ pointerEvents: 'none' }}
+                  />
+                ) : (
+                  <text
+                    textAnchor="middle"
+                    dominantBaseline="central"
+                    fontSize={markerRadius * 1.2}
+                    style={{ pointerEvents: 'none', userSelect: 'none' }}
+                  >
+                    🌱
+                  </text>
+                )}
+                <title>{p.gewaechs.name}</title>
+              </g>
+            )
+          })}
         </svg>
       </div>
 
@@ -264,7 +287,11 @@ export default function AreaEditor({ bereich }) {
                 onPointerDown={(e) => startNewDrag(e, g)}
                 title={g.lateinischer_name || g.name}
               >
-                <span className="plant-list-icon">🌱</span>
+                {g.icon_url ? (
+                  <img className="plant-list-icon plant-list-icon-img" src={assetUrl(g.icon_url)} alt="" />
+                ) : (
+                  <span className="plant-list-icon">🌱</span>
+                )}
                 <span className="plant-list-text">
                   <span className="plant-list-name">{g.name}</span>
                   {g.lateinischer_name && (
@@ -343,7 +370,11 @@ export default function AreaEditor({ bereich }) {
           className={`drag-ghost ${newDrag.overCanvas ? 'drag-ghost-ok' : ''}`}
           style={{ left: newDrag.x, top: newDrag.y }}
         >
-          <span className="drag-ghost-icon">🌱</span>
+          {newDrag.gewaechs.icon_url ? (
+            <img className="drag-ghost-icon drag-ghost-icon-img" src={assetUrl(newDrag.gewaechs.icon_url)} alt="" />
+          ) : (
+            <span className="drag-ghost-icon">🌱</span>
+          )}
           <span className="drag-ghost-name">{newDrag.gewaechs.name}</span>
         </div>
       )}

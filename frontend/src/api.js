@@ -1,6 +1,15 @@
 // Kleiner Client für die Backend-API.
 // Basis-URL kann über VITE_API_URL in frontend/.env überschrieben werden.
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api'
+// Ursprung des Backends (ohne /api) für statische Dateien wie Icons
+const API_ORIGIN = API_URL.replace(/\/api\/?$/, '')
+
+// Macht aus einem relativen Pfad des Backends (z. B. "/uploads/icons/x.png")
+// eine vollständige URL. Gibt null zurück, wenn kein Pfad vorliegt.
+export function assetUrl(path) {
+  if (!path) return null
+  return /^https?:\/\//.test(path) ? path : `${API_ORIGIN}${path}`
+}
 
 async function request(path, options = {}) {
   let res
@@ -36,4 +45,9 @@ export const api = {
   getPflanzungenForBereich: (bereich) => request(`/gepflanzt/bereich/${bereich}`),
   getPflanzungenForGewaechs: (gewaechsId) => request(`/gepflanzt/gewaechs/${gewaechsId}`),
   createPflanzung: (data) => request('/gepflanzt', { method: 'POST', body: data }),
+
+  getIcons: () => request('/icons'),
+  // data: PNG als Data-URL ("data:image/png;base64,…")
+  createIcon: (data) => request('/icons', { method: 'POST', body: data }),
+  deleteIcon: (id) => request(`/icons/${id}`, { method: 'DELETE' }),
 }

@@ -52,10 +52,13 @@ router.get('/bereich/:bereich', async (req, res) => {
               json_build_object('id', o.id, 'x_koordinate', o.x_koordinate,
                                 'y_koordinate', o.y_koordinate, 'bereich', o.bereich) AS ort,
               json_build_object('id', g.id, 'name', g.name, 'lateinischer_name', g.lateinischer_name,
-                                'bluehzeit', g.bluehzeit, 'benoetigtes_licht', g.benoetigtes_licht) AS gewaechs
+                                'bluehzeit', g.bluehzeit, 'benoetigtes_licht', g.benoetigtes_licht,
+                                'icon_id', g.icon_id,
+                                'icon_url', CASE WHEN i.id IS NULL THEN NULL ELSE '/uploads/icons/' || i.dateiname END) AS gewaechs
        FROM gepflanzt p
        JOIN ort o ON o.id = p.ort_id
        JOIN gewaechs g ON g.id = p.gewaechs_id
+       LEFT JOIN icon i ON i.id = g.icon_id
        WHERE o.bereich = $1
        ORDER BY p.id`,
       [req.params.bereich]

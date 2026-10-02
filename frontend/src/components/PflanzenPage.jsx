@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { api } from '../api'
+import { api, assetUrl } from '../api'
 import CreatePlantModal from './CreatePlantModal'
 import PlantDetailModal from './PlantDetailModal'
 
@@ -123,7 +123,14 @@ export default function PflanzenPage() {
             ) : (
               rows.map((g) => (
                 <tr key={g.id} onClick={() => setSelected(g)}>
-                  <td>{g.name}</td>
+                  <td className="pflanzen-name-cell">
+                    {g.icon_url ? (
+                      <img className="pflanzen-icon" src={assetUrl(g.icon_url)} alt="" />
+                    ) : (
+                      <span className="pflanzen-icon pflanzen-icon-default">🌱</span>
+                    )}
+                    {g.name}
+                  </td>
                   <td className="pflanzen-latin">{g.lateinischer_name}</td>
                   <td>{g.herkunft}</td>
                   <td>{g.benoetigtes_licht}</td>
