@@ -59,6 +59,23 @@ CREATE TABLE IF NOT EXISTS gewaechs_typ (
   PRIMARY KEY (gewaechs_id, typ_id)
 );
 
+-- objects
+CREATE TABLE IF NOT EXISTS objects{
+  objects_id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+}
+
+-- location of the objects
+
+
+-- form but only have square
+CREATE TABLE IF NOT EXISTS form{
+  form_id SERIAL PRIMARY KEY,
+  name TEXT NOT NULL,
+  length_cm INTEGER,
+  height_cm INTEGER,
+}
+
 CREATE INDEX IF NOT EXISTS idx_gepflanzt_ort ON gepflanzt(ort_id);
 CREATE INDEX IF NOT EXISTS idx_gepflanzt_gewaechs ON gepflanzt(gewaechs_id);
 CREATE INDEX IF NOT EXISTS idx_ort_bereich ON ort(bereich);

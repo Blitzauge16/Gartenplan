@@ -65,9 +65,7 @@ curl http://localhost:5000/api/health
 Umsetzung des ER-Modells. Die beiden n:m-Beziehungen („gepflanzt“ und „haben“)
 werden zu Verknüpfungstabellen:
 
-```
-ort (1) ──< gepflanzt >── (1) gewaechs (1) ──< gewaechs_typ >── (1) typ
-```
+[ER-Modell](data/er_model.png)
 
 | Tabelle | Spalten | Beschreibung |
 |---|---|---|
