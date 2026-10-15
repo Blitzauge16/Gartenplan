@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api } from '../api'
-import hotspotMeta from '../data/hotspotMeta'
+import { LICHT_OPTIONEN } from '../data/options'
+import { buildStandorte } from '../utils/standorte'
 import IconPicker from './IconPicker'
+import TypDatalist from './TypDatalist'
+import StandortListe from './StandortListe'
+import ConfirmDeleteDialog from './ConfirmDeleteDialog'
 
-const FIELDS = ['name', 'lateinischer_name', 'herkunft', 'benoetigtes_licht', 'bluehzeit', 'notizen']
+const FIELDS = ['name', 'lateinischer_name', 'herkunft', 'benoetigtes_licht', 'bluehzeit', 'typ', 'notizen']
 
 function toForm(gewaechs) {
   return {
@@ -13,41 +17,24 @@ function toForm(gewaechs) {
   }
 }
 
-// Gruppiert Pflanzungen nach Bereich; bei mehreren im selben Bereich wird durchnummeriert
-function buildStandorte(pflanzungen) {
-  const countPerBereich = {}
-  for (const p of pflanzungen) {
-    countPerBereich[p.ort.bereich] = (countPerBereich[p.ort.bereich] ?? 0) + 1
-  }
-  const seen = {}
-  return pflanzungen.map((p) => {
-    const bereich = p.ort.bereich
-    const title = hotspotMeta[bereich]?.title ?? bereich ?? 'Unbekannter Bereich'
-    seen[bereich] = (seen[bereich] ?? 0) + 1
-    return {
-      id: p.id,
-      bereich,
-      label: countPerBereich[bereich] > 1 ? `${title} ${seen[bereich]}` : title,
-      datum: p.datum,
-    }
-  })
-}
-
 // Popup mit allen Daten einer Pflanze: links bearbeitbares Formular,
 // rechts alle Bereiche, in denen sie steht.
+// gewaechs braucht mindestens { thing_id, name }.
 export default function PlantDetailModal({ gewaechs, onClose, onSaved, onDeleted }) {
   const navigate = useNavigate()
   const [form, setForm] = useState(() => toForm(gewaechs))
-  const [pflanzungen, setPflanzungen] = useState([])
+  const [platzierungen, setPlatzierungen] = useState([])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(false)
 
   useEffect(() => {
-    api.getPflanzungenForGewaechs(gewaechs.id).then(setPflanzungen).catch((err) => setError(err.message))
-  }, [gewaechs.id])
+    // Vollständige Daten nachladen (im Editor kommt nur ein Auszug mit)
+    api.getGewaechs(gewaechs.thing_id).then((g) => setForm(toForm(g))).catch((err) => setError(err.message))
+    api.getPlatzierungenForThing(gewaechs.thing_id).then(setPlatzierungen).catch((err) => setError(err.message))
+  }, [gewaechs.thing_id])
 
-  const standorte = buildStandorte(pflanzungen)
+  const standorte = buildStandorte(platzierungen)
   const set = (field) => (e) => setForm({ ...form, [field]: e.target.value })
 
   const handleSave = async (event) => {
@@ -56,7 +43,7 @@ export default function PlantDetailModal({ gewaechs, onClose, onSaved, onDeleted
     setSaving(true)
     setError(null)
     try {
-      const updated = await api.updateGewaechs(gewaechs.id, form)
+      const updated = await api.updateGewaechs(gewaechs.thing_id, form)
       onSaved?.(updated)
       onClose()
     } catch (err) {
@@ -67,7 +54,7 @@ export default function PlantDetailModal({ gewaechs, onClose, onSaved, onDeleted
   }
 
   const handleDeleteClick = () => {
-    if (pflanzungen.length > 0) {
+    if (platzierungen.length > 0) {
       setConfirmDelete(true)
       return
     }
@@ -78,7 +65,7 @@ export default function PlantDetailModal({ gewaechs, onClose, onSaved, onDeleted
     setSaving(true)
     setError(null)
     try {
-      await api.deleteGewaechs(gewaechs.id)
+      await api.deleteGewaechs(gewaechs.thing_id)
       onDeleted?.(gewaechs)
       onClose()
     } catch (err) {
@@ -117,23 +104,31 @@ export default function PlantDetailModal({ gewaechs, onClose, onSaved, onDeleted
               </div>
               <div className="form-row-group">
                 <div className="form-row">
+                  <label htmlFor="edit-typ">Typ</label>
+                  <input id="edit-typ" value={form.typ} onChange={set('typ')} list="plant-typ-vorschlaege" />
+                  <TypDatalist />
+                </div>
+                <div className="form-row">
                   <label htmlFor="edit-herkunft">Herkunft</label>
                   <input id="edit-herkunft" value={form.herkunft} onChange={set('herkunft')} />
                 </div>
+              </div>
+              <div className="form-row-group">
                 <div className="form-row">
                   <label htmlFor="edit-licht">Benötigtes Licht</label>
                   <select id="edit-licht" value={form.benoetigtes_licht} onChange={set('benoetigtes_licht')}>
                     <option value="">– auswählen –</option>
-                    <option value="vollsonnig">Vollsonnig</option>
-                    <option value="sonnig">Sonnig</option>
-                    <option value="halbschattig">Halbschattig</option>
-                    <option value="schattig">Schattig</option>
+                    {LICHT_OPTIONEN.map((l) => (
+                      <option key={l} value={l}>
+                        {l.charAt(0).toUpperCase() + l.slice(1)}
+                      </option>
+                    ))}
                   </select>
                 </div>
-              </div>
-              <div className="form-row">
-                <label htmlFor="edit-bluehzeit">Blühzeit</label>
-                <input id="edit-bluehzeit" value={form.bluehzeit} onChange={set('bluehzeit')} />
+                <div className="form-row">
+                  <label htmlFor="edit-bluehzeit">Blühzeit</label>
+                  <input id="edit-bluehzeit" value={form.bluehzeit} onChange={set('bluehzeit')} />
+                </div>
               </div>
               <div className="form-row">
                 <label htmlFor="edit-notizen">Notizen</label>
@@ -145,27 +140,11 @@ export default function PlantDetailModal({ gewaechs, onClose, onSaved, onDeleted
               />
             </div>
 
-            <div className="plant-detail-standorte">
-              <h3>Standorte ({standorte.length})</h3>
-              {standorte.length === 0 ? (
-                <p className="editor-hint">Diese Pflanze ist noch nirgends gepflanzt.</p>
-              ) : (
-                <ul className="standort-list">
-                  {standorte.map((s) => (
-                    <li key={s.id}>
-                      <button type="button" className="standort-link" onClick={() => goToBereich(s.bereich)}>
-                        <span>{s.label}</span>
-                        {s.datum && (
-                          <span className="standort-datum">
-                            {new Date(s.datum).toLocaleDateString('de-DE')}
-                          </span>
-                        )}
-                      </button>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
+            <StandortListe
+              standorte={standorte}
+              onSelect={goToBereich}
+              leerText="Diese Pflanze ist noch nirgends gepflanzt."
+            />
           </div>
 
           <div className="modal-footer plant-detail-footer">
@@ -189,42 +168,13 @@ export default function PlantDetailModal({ gewaechs, onClose, onSaved, onDeleted
         </form>
 
         {confirmDelete && (
-          <div className="modal-backdrop" onClick={(e) => e.target === e.currentTarget && setConfirmDelete(false)}>
-            <div className="modal-content confirm-dialog">
-              <div className="modal-header">
-                <h2>Wirklich löschen?</h2>
-              </div>
-              <div className="modal-body">
-                <p>
-                  <strong>{gewaechs.name}</strong> steht noch an {standorte.length}{' '}
-                  {standorte.length === 1 ? 'Standort' : 'Standorten'}. Diese Pflanzungen werden
-                  ebenfalls gelöscht:
-                </p>
-                <ul className="confirm-list">
-                  {standorte.map((s) => (
-                    <li key={s.id}>{s.label}</li>
-                  ))}
-                </ul>
-              </div>
-              <div className="modal-footer">
-                <button
-                  type="button"
-                  className="editor-button editor-button-secondary"
-                  onClick={() => setConfirmDelete(false)}
-                >
-                  Abbrechen
-                </button>
-                <button
-                  type="button"
-                  className="editor-button editor-button-danger"
-                  onClick={doDelete}
-                  disabled={saving}
-                >
-                  {saving ? 'Löscht...' : 'Endgültig löschen'}
-                </button>
-              </div>
-            </div>
-          </div>
+          <ConfirmDeleteDialog
+            name={gewaechs.name}
+            standorte={standorte}
+            saving={saving}
+            onCancel={() => setConfirmDelete(false)}
+            onConfirm={doDelete}
+          />
         )}
       </div>
     </div>

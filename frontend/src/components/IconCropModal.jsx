@@ -120,8 +120,7 @@ export default function IconCropModal({ file, onSaved, onCancel }) {
       ctx.drawImage(imgRef.current, sx, sy, sSize, sSize, 0, 0, ICON_SIZE, ICON_SIZE)
 
       const data = canvas.toDataURL('image/png')
-      const name = file.name.replace(/\.[^.]+$/, '') || 'Icon'
-      const icon = await api.createIcon({ name, data })
+      const icon = await api.createIcon({ data })
       onSaved?.(icon)
     } catch (err) {
       setError(err.message)

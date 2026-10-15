@@ -6,6 +6,7 @@ import { getByCategory } from '../data/hotspotMeta'
 const CATEGORIES = [
   { key: 'uebersicht', label: 'Übersicht', icon: '🗺️', items: [{ id: '', title: 'Gartenplan' }] },
   { key: 'pflanzen', label: 'Pflanzen', icon: '🌱', items: [{ id: 'pflanzen', title: 'Alle Pflanzen' }] },
+  { key: 'objekte', label: 'Objekte', icon: '📦', items: [{ id: 'objekte', title: 'Alle Objekte' }] },
   { key: 'gebaeude', label: 'Gebäude', icon: '🏠', items: getByCategory('gebaeude') },
   { key: 'beet', label: 'Beete', icon: '🌸', items: getByCategory('beet') },
   { key: 'hecke', label: 'Hecken', icon: '🌿', items: getByCategory('hecke') },

@@ -310,6 +310,87 @@
   cursor: grab;
 }
 
+/* Rechteck-Formen im Bereichs-Editor */
+.shape-marker {
+  cursor: grab;
+}
+
+.shape-marker rect:first-child {
+  fill: rgba(102, 126, 234, 0.18);
+  stroke: #4f46e5;
+}
+
+.shape-marker-selected rect:first-child {
+  fill: rgba(74, 222, 128, 0.3);
+  stroke: #166534;
+}
+
+.shape-resize-handle {
+  fill: #ffffff;
+  stroke: #166534;
+  stroke-width: 1;
+  cursor: nwse-resize;
+}
+
+/* Reiter Pflanzen/Objekte in der Seitenleiste */
+.editor-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.editor-tab {
+  flex: 1;
+  padding: 7px 8px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: white;
+  color: #475569;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.editor-tab:hover {
+  background: #eef2ff;
+}
+
+.editor-tab-active {
+  background: #667eea;
+  border-color: #667eea;
+  color: white;
+}
+
+.editor-box textarea {
+  width: 100%;
+  padding: 7px 9px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  box-sizing: border-box;
+  background: white;
+  resize: vertical;
+}
+
+.editor-inline-fields {
+  display: flex;
+  gap: 10px;
+}
+
+.editor-inline-fields > div {
+  flex: 1;
+}
+
+.editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.editor-actions .editor-button {
+  margin-top: 10px;
+}
+
 .area-sidebar {
   flex: 0 0 280px;
   display: flex;
@@ -563,6 +644,7 @@
 }
 
 .icon-tile {
+  position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -574,6 +656,30 @@
   cursor: pointer;
   font: inherit;
   color: #333;
+}
+
+/* Löschen-Kreuz auf ungenutzten Icons, erscheint beim Überfahren */
+.icon-tile-delete {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 18px;
+  height: 18px;
+  line-height: 16px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: white;
+  font-size: 0.9rem;
+  text-align: center;
+  opacity: 0;
+}
+
+.icon-tile:hover .icon-tile-delete {
+  opacity: 1;
+}
+
+.icon-tile-delete:hover {
+  background: #b91c1c;
 }
 
 .icon-tile:hover {
@@ -863,6 +969,14 @@
 .pflanzen-latin {
   font-style: italic;
   color: #666;
+}
+
+.pflanzen-notizen {
+  color: #555;
+  max-width: 420px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 /* Pflanzen-Detail-Popup */

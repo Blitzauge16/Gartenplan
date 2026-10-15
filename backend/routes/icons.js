@@ -1,8 +1,8 @@
 // Routen für die Tabelle "icon": hochgeladene, rund zugeschnittene Bilder,
-// die Gewächsen als Marker-Icon zugewiesen werden können.
+// die Gewächsen und Objekten als Marker-Icon zugewiesen werden können.
 // Die Bilddaten liegen als PNG-Dateien in backend/uploads/icons/ und werden
 // über /uploads/icons/<dateiname> statisch ausgeliefert (siehe server.js);
-// die Datenbank speichert nur Name und Dateiname.
+// die Datenbank speichert nur Dateiname und Erstellungszeitpunkt.
 // Eingebunden unter /api/icons.
 const express = require('express');
 const fs = require('fs');
@@ -20,20 +20,26 @@ const MAX_BYTES = 2 * 1024 * 1024;
 
 const withUrl = (row) => ({ ...row, url: `/uploads/icons/${row.dateiname}` });
 
-// GET alle Icons (neueste zuerst)
+// GET alle Icons (neueste zuerst), jeweils mit Anzahl der Verwendungen
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM icon ORDER BY erstellt_am DESC, id DESC');
+    const { rows } = await pool.query(`
+      SELECT i.*,
+             (SELECT count(*)::int FROM gewaechs g WHERE g.icon_id = i.id)
+             + (SELECT count(*)::int FROM objects o WHERE o.icon_id = i.id) AS verwendungen
+      FROM icon i
+      ORDER BY i.erstellt_am DESC, i.id DESC
+    `);
     res.json(rows.map(withUrl));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// POST neues Icon. Body: { name, data } — data ist eine PNG-Data-URL
+// POST neues Icon. Body: { data } — data ist eine PNG-Data-URL
 // ("data:image/png;base64,...") oder reines Base64.
 router.post('/', async (req, res) => {
-  const { name, data } = req.body;
+  const { data } = req.body;
   if (!data || typeof data !== 'string') {
     return res.status(400).json({ error: 'data (Base64-PNG) ist erforderlich' });
   }
@@ -60,11 +66,10 @@ router.post('/', async (req, res) => {
   const filePath = path.join(ICON_DIR, dateiname);
   try {
     await fs.promises.writeFile(filePath, buffer);
-    const { rows } = await pool.query(
-      'INSERT INTO icon (name, dateiname) VALUES ($1, $2) RETURNING *',
-      [(name || 'Icon').toString().slice(0, 200), dateiname]
-    );
-    res.status(201).json(withUrl(rows[0]));
+    const { rows } = await pool.query('INSERT INTO icon (dateiname) VALUES ($1) RETURNING *', [
+      dateiname,
+    ]);
+    res.status(201).json(withUrl({ ...rows[0], verwendungen: 0 }));
   } catch (err) {
     // Datei wieder entfernen, wenn der DB-Eintrag fehlschlug
     fs.promises.unlink(filePath).catch(() => {});
@@ -72,8 +77,8 @@ router.post('/', async (req, res) => {
   }
 });
 
-// DELETE Icon — Gewächse, die es nutzen, fallen auf das Standard-Icon zurück
-// (ON DELETE SET NULL in der Tabelle gewaechs).
+// DELETE Icon — Gewächse/Objekte, die es nutzen, fallen auf das Standard-Icon
+// zurück (ON DELETE SET NULL).
 router.delete('/:id', async (req, res) => {
   try {
     const { rows } = await pool.query('DELETE FROM icon WHERE id = $1 RETURNING dateiname', [

@@ -1,6 +1,8 @@
 import { useState } from 'react'
 import { api } from '../api'
 import IconPicker from './IconPicker'
+import TypDatalist from './TypDatalist'
+import { LICHT_OPTIONEN } from '../data/options'
 
 const EMPTY_FORM = {
   name: '',
@@ -8,6 +10,7 @@ const EMPTY_FORM = {
   herkunft: '',
   benoetigtes_licht: '',
   bluehzeit: '',
+  typ: '',
   notizen: '',
   icon_id: null,
 }
@@ -30,6 +33,8 @@ export default function CreatePlantModal({ isOpen, onClose, onCreated }) {
   const [error, setError] = useState(null)
 
   if (!isOpen) return null
+
+  const set = (field) => (e) => setForm({ ...form, [field]: e.target.value })
 
   const handleSubmit = async (event) => {
     event.preventDefault()
@@ -74,7 +79,7 @@ export default function CreatePlantModal({ isOpen, onClose, onCreated }) {
               <input
                 id="plant-name"
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={set('name')}
                 placeholder="z. B. Lavendel"
                 required
                 autoFocus
@@ -86,46 +91,57 @@ export default function CreatePlantModal({ isOpen, onClose, onCreated }) {
               <input
                 id="plant-lat"
                 value={form.lateinischer_name}
-                onChange={(e) => setForm({ ...form, lateinischer_name: e.target.value })}
+                onChange={set('lateinischer_name')}
                 placeholder="z. B. Lavandula angustifolia"
               />
             </div>
 
             <div className="form-row-group">
               <div className="form-row">
+                <label htmlFor="plant-typ">Typ</label>
+                <input
+                  id="plant-typ"
+                  value={form.typ}
+                  onChange={set('typ')}
+                  placeholder="z. B. Staude, Gemüse, Strauch"
+                  list="plant-typ-vorschlaege"
+                />
+                <TypDatalist />
+              </div>
+
+              <div className="form-row">
                 <label htmlFor="plant-herkunft">Herkunft</label>
                 <input
                   id="plant-herkunft"
                   value={form.herkunft}
-                  onChange={(e) => setForm({ ...form, herkunft: e.target.value })}
+                  onChange={set('herkunft')}
                   placeholder="z. B. Mittelmeerraum"
                 />
               </div>
-
-              <div className="form-row">
-                <label htmlFor="plant-licht">Benötigtes Licht</label>
-                <select
-                  id="plant-licht"
-                  value={form.benoetigtes_licht}
-                  onChange={(e) => setForm({ ...form, benoetigtes_licht: e.target.value })}
-                >
-                  <option value="">– auswählen –</option>
-                  <option value="vollsonnig">Vollsonnig</option>
-                  <option value="sonnig">Sonnig</option>
-                  <option value="halbschattig">Halbschattig</option>
-                  <option value="schattig">Schattig</option>
-                </select>
-              </div>
             </div>
 
-            <div className="form-row">
-              <label htmlFor="plant-bluehzeit">Blühzeit</label>
-              <input
-                id="plant-bluehzeit"
-                value={form.bluehzeit}
-                onChange={(e) => setForm({ ...form, bluehzeit: e.target.value })}
-                placeholder="z. B. Juni–August"
-              />
+            <div className="form-row-group">
+              <div className="form-row">
+                <label htmlFor="plant-licht">Benötigtes Licht</label>
+                <select id="plant-licht" value={form.benoetigtes_licht} onChange={set('benoetigtes_licht')}>
+                  <option value="">– auswählen –</option>
+                  {LICHT_OPTIONEN.map((l) => (
+                    <option key={l} value={l}>
+                      {l.charAt(0).toUpperCase() + l.slice(1)}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="form-row">
+                <label htmlFor="plant-bluehzeit">Blühzeit</label>
+                <input
+                  id="plant-bluehzeit"
+                  value={form.bluehzeit}
+                  onChange={set('bluehzeit')}
+                  placeholder="z. B. Juni–August"
+                />
+              </div>
             </div>
 
             <div className="form-row">
@@ -133,7 +149,7 @@ export default function CreatePlantModal({ isOpen, onClose, onCreated }) {
               <textarea
                 id="plant-notizen"
                 value={form.notizen}
-                onChange={(e) => setForm({ ...form, notizen: e.target.value })}
+                onChange={set('notizen')}
                 placeholder="Besondere Pflegehinweise, etc."
                 rows={3}
               />

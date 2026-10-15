@@ -1,5 +1,10 @@
 // Kleiner Client für die Backend-API.
 // Basis-URL kann über VITE_API_URL in frontend/.env überschrieben werden.
+//
+// Datenmodell (siehe backend/db/schema.sql): Alles, was im Plan stehen kann,
+// ist ein "thing" mit einer thing_id — entweder ein Gewächs (Pflanze), ein
+// Objekt (Gegenstand) oder eine Form (Rechteck). Eine "Platzierung" verbindet
+// ein thing mit einem Ort (x/y im Plan + Bereich).
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:5000/api'
 // Ursprung des Backends (ohne /api) für statische Dateien wie Icons
 const API_ORIGIN = API_URL.replace(/\/api\/?$/, '')
@@ -33,19 +38,41 @@ async function request(path, options = {}) {
 }
 
 export const api = {
+  // Gewächse (Pflanzen) — Schlüssel: thing_id
   getGewaechse: () => request('/gewaechse'),
+  getGewaechs: (thingId) => request(`/gewaechse/${thingId}`),
   createGewaechs: (data) => request('/gewaechse', { method: 'POST', body: data }),
-  updateGewaechs: (id, data) => request(`/gewaechse/${id}`, { method: 'PUT', body: data }),
-  deleteGewaechs: (id) => request(`/gewaechse/${id}`, { method: 'DELETE' }),
+  updateGewaechs: (thingId, data) => request(`/gewaechse/${thingId}`, { method: 'PUT', body: data }),
+  deleteGewaechs: (thingId) => request(`/gewaechse/${thingId}`, { method: 'DELETE' }),
 
+  // Objekte (Gegenstände) — Schlüssel: thing_id
+  getObjects: () => request('/objects'),
+  getObject: (thingId) => request(`/objects/${thingId}`),
+  createObject: (data) => request('/objects', { method: 'POST', body: data }),
+  updateObject: (thingId, data) => request(`/objects/${thingId}`, { method: 'PUT', body: data }),
+  deleteObject: (thingId) => request(`/objects/${thingId}`, { method: 'DELETE' }),
+
+  // Formen (Rechtecke) — Schlüssel: thing_id; width/height in Plan-Einheiten
+  getShapes: () => request('/shapes'),
+  createShape: (data) => request('/shapes', { method: 'POST', body: data }),
+  updateShape: (thingId, data) => request(`/shapes/${thingId}`, { method: 'PUT', body: data }),
+  deleteShape: (thingId) => request(`/shapes/${thingId}`, { method: 'DELETE' }),
+
+  // Orte (Positionen im Plan)
   createOrt: (data) => request('/orte', { method: 'POST', body: data }),
   updateOrt: (id, data) => request(`/orte/${id}`, { method: 'PUT', body: data }),
   deleteOrt: (id) => request(`/orte/${id}`, { method: 'DELETE' }),
 
-  getPflanzungenForBereich: (bereich) => request(`/gepflanzt/bereich/${bereich}`),
-  getPflanzungenForGewaechs: (gewaechsId) => request(`/gepflanzt/gewaechs/${gewaechsId}`),
-  createPflanzung: (data) => request('/gepflanzt', { method: 'POST', body: data }),
+  // Platzierungen (thing an Ort). Jede Antwort enthält ort {…} und thing {art, …}
+  getPlatzierungenForBereich: (bereich) => request(`/platziert/bereich/${bereich}`),
+  getPlatzierungenForThing: (thingId) => request(`/platziert/thing/${thingId}`),
+  // data: { thing_id, ort_id } oder { thing_id, x_koordinate, y_koordinate, bereich }, optional datum/notizen
+  createPlatzierung: (data) => request('/platziert', { method: 'POST', body: data }),
+  // data: { datum, notizen }
+  updatePlatzierung: (id, data) => request(`/platziert/${id}`, { method: 'PUT', body: data }),
+  deletePlatzierung: (id) => request(`/platziert/${id}`, { method: 'DELETE' }),
 
+  // Icons
   getIcons: () => request('/icons'),
   // data: PNG als Data-URL ("data:image/png;base64,…")
   createIcon: (data) => request('/icons', { method: 'POST', body: data }),

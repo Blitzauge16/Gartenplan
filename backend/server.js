@@ -21,10 +21,14 @@ app.get('/api/health', (req, res) => {
   res.json({ message: 'Gartenplan API läuft!' });
 });
 
-app.use('/api/orte', require('./routes/orte'));
+// things und ihre Subtypen
 app.use('/api/gewaechse', require('./routes/gewaechse'));
-app.use('/api/typen', require('./routes/typen'));
-app.use('/api/gepflanzt', require('./routes/gepflanzt'));
+app.use('/api/objects', require('./routes/objects'));
+app.use('/api/shapes', require('./routes/shapes'));
+// Orte und die Beziehung "platziert"
+app.use('/api/orte', require('./routes/orte'));
+app.use('/api/platziert', require('./routes/platziert'));
+// Icons
 app.use('/api/icons', require('./routes/icons'));
 
 app.listen(PORT, () => {

@@ -1,45 +1,45 @@
-// Routen für die Tabelle "gewaechs" (Entität Gewächs aus dem ER-Modell)
-// inklusive der n:m-Beziehung "haben" zu den Typen (Tabelle gewaechs_typ).
-// Eingebunden unter /api/gewaechse.
+// Routen für den Subtyp "gewaechs" (Pflanze) der Obertabelle "thing".
+// Eingebunden unter /api/gewaechse. Der Schlüssel heißt überall thing_id.
 const express = require('express');
 const pool = require('../db/connection');
+const { iconUrlSql, withTransaction, newThingId, deleteThing, parseId, parseText } =
+  require('../db/things');
+
 const router = express.Router();
 
-// Basis-Query: Gewächs inkl. seiner Typen (Beziehung "haben") und der URL
-// seines Icons (NULL = Standard-Icon).
-// json_agg fasst alle Typen eines Gewächses zu einem JSON-Array zusammen;
-// der FILTER verhindert [null] bei Gewächsen ohne Typ.
-const GEWAECHS_SELECT = `
-  SELECT g.*,
-         CASE WHEN i.id IS NULL THEN NULL ELSE '/uploads/icons/' || i.dateiname END AS icon_url,
-         COALESCE(
-           json_agg(json_build_object('id', t.id, 'name', t.name)) FILTER (WHERE t.id IS NOT NULL),
-           '[]'
-         ) AS typen
+// Basis-Query: Gewächs inkl. Icon-URL und Anzahl seiner Platzierungen
+const SELECT = `
+  SELECT g.thing_id, g.icon_id, g.name, g.lateinischer_name, g.herkunft,
+         g.benoetigtes_licht, g.bluehzeit, g.typ, g.notizen,
+         ${iconUrlSql('i')} AS icon_url,
+         (SELECT count(*)::int FROM platziert p WHERE p.thing_id = g.thing_id) AS anzahl_platzierungen
   FROM gewaechs g
   LEFT JOIN icon i ON i.id = g.icon_id
-  LEFT JOIN gewaechs_typ gt ON gt.gewaechs_id = g.id
-  LEFT JOIN typ t ON t.id = gt.typ_id
 `;
-const GEWAECHS_GROUP_BY = 'GROUP BY g.id, i.id';
 
-// Leere Strings/undefined für icon_id als NULL behandeln, sonst als Zahl
-const parseIconId = (value) => {
-  if (value === undefined || value === null || value === '') return null;
-  const n = Number(value);
-  return Number.isInteger(n) ? n : null;
-};
-
-// Ein einzelnes Gewächs nach Änderung erneut inkl. icon_url/typen laden
-async function fetchGewaechs(id) {
-  const { rows } = await pool.query(`${GEWAECHS_SELECT} WHERE g.id = $1 ${GEWAECHS_GROUP_BY}`, [id]);
+async function fetchGewaechs(thingId) {
+  const { rows } = await pool.query(`${SELECT} WHERE g.thing_id = $1`, [thingId]);
   return rows[0] ?? null;
+}
+
+// Felder aus dem Request-Body in Spaltenwerte umwandeln
+function fromBody(body) {
+  return {
+    name: parseText(body.name),
+    lateinischer_name: parseText(body.lateinischer_name),
+    herkunft: parseText(body.herkunft),
+    benoetigtes_licht: parseText(body.benoetigtes_licht),
+    bluehzeit: parseText(body.bluehzeit),
+    typ: parseText(body.typ),
+    notizen: parseText(body.notizen),
+    icon_id: parseId(body.icon_id),
+  };
 }
 
 // GET alle Gewächse
 router.get('/', async (req, res) => {
   try {
-    const { rows } = await pool.query(`${GEWAECHS_SELECT} ${GEWAECHS_GROUP_BY} ORDER BY g.name`);
+    const { rows } = await pool.query(`${SELECT} ORDER BY g.name`);
     res.json(rows);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -57,18 +57,22 @@ router.get('/:id', async (req, res) => {
   }
 });
 
-// POST neues Gewächs
+// POST neues Gewächs (legt zuerst das thing an, dann die gewaechs-Zeile)
 router.post('/', async (req, res) => {
-  const { name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen, icon_id } =
-    req.body;
-  if (!name) return res.status(400).json({ error: 'name ist erforderlich' });
+  const f = fromBody(req.body);
+  if (!f.name) return res.status(400).json({ error: 'name ist erforderlich' });
   try {
-    const { rows } = await pool.query(
-      `INSERT INTO gewaechs (name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen, icon_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING id`,
-      [name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen, parseIconId(icon_id)]
-    );
-    res.status(201).json(await fetchGewaechs(rows[0].id));
+    const thingId = await withTransaction(async (client) => {
+      const id = await newThingId(client);
+      await client.query(
+        `INSERT INTO gewaechs (thing_id, name, lateinischer_name, herkunft, benoetigtes_licht,
+                               bluehzeit, typ, notizen, icon_id)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
+        [id, f.name, f.lateinischer_name, f.herkunft, f.benoetigtes_licht, f.bluehzeit, f.typ, f.notizen, f.icon_id]
+      );
+      return id;
+    });
+    res.status(201).json(await fetchGewaechs(thingId));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -76,82 +80,28 @@ router.post('/', async (req, res) => {
 
 // PUT Gewächs ändern
 router.put('/:id', async (req, res) => {
-  const { name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, notizen, icon_id } =
-    req.body;
+  const f = fromBody(req.body);
+  if (!f.name) return res.status(400).json({ error: 'name ist erforderlich' });
   try {
-    const { rows } = await pool.query(
+    const { rowCount } = await pool.query(
       `UPDATE gewaechs
-       SET name = $1, lateinischer_name = $2, herkunft = $3,
-           benoetigtes_licht = $4, bluehzeit = $5, notizen = $6, icon_id = $7
-       WHERE id = $8 RETURNING id`,
-      [
-        name,
-        lateinischer_name,
-        herkunft,
-        benoetigtes_licht,
-        bluehzeit,
-        notizen,
-        parseIconId(icon_id),
-        req.params.id,
-      ]
+       SET name = $1, lateinischer_name = $2, herkunft = $3, benoetigtes_licht = $4,
+           bluehzeit = $5, typ = $6, notizen = $7, icon_id = $8
+       WHERE thing_id = $9`,
+      [f.name, f.lateinischer_name, f.herkunft, f.benoetigtes_licht, f.bluehzeit, f.typ, f.notizen, f.icon_id, req.params.id]
     );
-    if (rows.length === 0) return res.status(404).json({ error: 'Gewächs nicht gefunden' });
-    res.json(await fetchGewaechs(rows[0].id));
+    if (rowCount === 0) return res.status(404).json({ error: 'Gewächs nicht gefunden' });
+    res.json(await fetchGewaechs(req.params.id));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
-// DELETE Gewächs — löscht auch seine Pflanzungen (CASCADE) und die Orte,
-// an denen sonst nichts mehr steht, damit keine verwaisten Marker bleiben.
+// DELETE Gewächs — entfernt auch seine Platzierungen und verwaiste Orte
 router.delete('/:id', async (req, res) => {
-  const client = await pool.connect();
   try {
-    await client.query('BEGIN');
-    await client.query(
-      `DELETE FROM ort
-       WHERE id IN (SELECT ort_id FROM gepflanzt WHERE gewaechs_id = $1)
-         AND NOT EXISTS (
-           SELECT 1 FROM gepflanzt p WHERE p.ort_id = ort.id AND p.gewaechs_id <> $1
-         )`,
-      [req.params.id]
-    );
-    const { rowCount } = await client.query('DELETE FROM gewaechs WHERE id = $1', [req.params.id]);
-    if (rowCount === 0) {
-      await client.query('ROLLBACK');
-      return res.status(404).json({ error: 'Gewächs nicht gefunden' });
-    }
-    await client.query('COMMIT');
-    res.status(204).end();
-  } catch (err) {
-    await client.query('ROLLBACK');
-    res.status(500).json({ error: err.message });
-  } finally {
-    client.release();
-  }
-});
-
-// POST Typ zu Gewächs hinzufügen (Beziehung "haben")
-router.post('/:id/typen', async (req, res) => {
-  const { typ_id } = req.body;
-  try {
-    await pool.query(
-      'INSERT INTO gewaechs_typ (gewaechs_id, typ_id) VALUES ($1, $2) ON CONFLICT DO NOTHING',
-      [req.params.id, typ_id]
-    );
-    res.status(201).json({ gewaechs_id: Number(req.params.id), typ_id });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// DELETE Typ von Gewächs entfernen
-router.delete('/:id/typen/:typId', async (req, res) => {
-  try {
-    await pool.query(
-      'DELETE FROM gewaechs_typ WHERE gewaechs_id = $1 AND typ_id = $2',
-      [req.params.id, req.params.typId]
-    );
+    const ok = await deleteThing(req.params.id, 'gewaechs');
+    if (!ok) return res.status(404).json({ error: 'Gewächs nicht gefunden' });
     res.status(204).end();
   } catch (err) {
     res.status(500).json({ error: err.message });

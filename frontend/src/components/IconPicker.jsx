@@ -2,29 +2,39 @@ import { useEffect, useRef, useState } from 'react'
 import { api, assetUrl } from '../api'
 import IconCropModal from './IconCropModal'
 
-// Auswahl des Marker-Icons für eine Pflanze: zeigt alle gespeicherten Icons
-// als Kacheln (plus "Standard" = 🌱) und bietet einen Upload-Button, der den
-// Datei-Explorer öffnet und das gewählte Bild zum Zuschneiden anzeigt.
+// Auswahl des Marker-Icons für eine Pflanze oder ein Objekt: zeigt alle
+// gespeicherten Icons als Kacheln (plus "Standard") und bietet einen
+// Upload-Button, der den Datei-Explorer öffnet und das gewählte Bild zum
+// Zuschneiden anzeigt. Nicht mehr verwendete Icons lassen sich löschen.
 //
 //   <IconPicker value={form.icon_id} onChange={(id) => setForm({ ...form, icon_id: id })} />
-export default function IconPicker({ value, onChange }) {
+//   defaultIcon: Emoji für "kein Icon" (🌱 für Pflanzen, 📦 für Objekte)
+export default function IconPicker({ value, onChange, defaultIcon = '🌱' }) {
   const [icons, setIcons] = useState([])
   const [error, setError] = useState(null)
   const [cropFile, setCropFile] = useState(null)
   const fileInputRef = useRef(null)
 
-  const loadIcons = async () => {
-    try {
-      setIcons(await api.getIcons())
-      setError(null)
-    } catch (err) {
-      setError(err.message)
-    }
-  }
+  // Erhöhen löst ein erneutes Laden der Icons aus
+  const [reloadKey, setReloadKey] = useState(0)
+  const loadIcons = () => setReloadKey((k) => k + 1)
 
   useEffect(() => {
-    loadIcons()
-  }, [])
+    let active = true
+    api
+      .getIcons()
+      .then((data) => {
+        if (!active) return
+        setIcons(data)
+        setError(null)
+      })
+      .catch((err) => {
+        if (active) setError(err.message)
+      })
+    return () => {
+      active = false
+    }
+  }, [reloadKey])
 
   const handleFileChange = (e) => {
     const file = e.target.files?.[0]
@@ -43,6 +53,17 @@ export default function IconPicker({ value, onChange }) {
     setCropFile(null)
     await loadIcons()
     onChange?.(icon.id)
+  }
+
+  const handleDelete = async (e, icon) => {
+    e.stopPropagation()
+    try {
+      await api.deleteIcon(icon.id)
+      if (selectedId === icon.id) onChange?.(null)
+      await loadIcons()
+    } catch (err) {
+      setError(err.message)
+    }
   }
 
   const selectedId = value === '' || value === undefined ? null : value
@@ -76,21 +97,35 @@ export default function IconPicker({ value, onChange }) {
           onClick={() => onChange?.(null)}
           title="Standard-Icon"
         >
-          <span className="icon-tile-default">🌱</span>
+          <span className="icon-tile-default">{defaultIcon}</span>
           <span className="icon-tile-label">Standard</span>
         </button>
-        {icons.map((icon) => (
-          <button
-            key={icon.id}
-            type="button"
-            className={`icon-tile ${selectedId === icon.id ? 'icon-tile-selected' : ''}`}
-            onClick={() => onChange?.(icon.id)}
-            title={icon.name}
-          >
-            <img src={assetUrl(icon.url)} alt={icon.name} className="icon-tile-img" />
-            <span className="icon-tile-label">{icon.name}</span>
-          </button>
-        ))}
+        {icons.map((icon) => {
+          const datum = new Date(icon.erstellt_am).toLocaleDateString('de-DE')
+          const unused = icon.verwendungen === 0 && selectedId !== icon.id
+          return (
+            <button
+              key={icon.id}
+              type="button"
+              className={`icon-tile ${selectedId === icon.id ? 'icon-tile-selected' : ''}`}
+              onClick={() => onChange?.(icon.id)}
+              title={`Hochgeladen am ${datum}`}
+            >
+              <img src={assetUrl(icon.url)} alt="" className="icon-tile-img" />
+              <span className="icon-tile-label">{datum}</span>
+              {unused && (
+                <span
+                  role="button"
+                  className="icon-tile-delete"
+                  title="Icon löschen (wird nirgends verwendet)"
+                  onClick={(e) => handleDelete(e, icon)}
+                >
+                  &times;
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
 
       {cropFile && (

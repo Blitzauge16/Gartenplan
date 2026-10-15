@@ -1,10 +1,65 @@
--- Gartenplan-Datenbank, abgeleitet aus dem ER-Modell:
---   Ort (ID, x-Koordinate, y-Koordinate)
---   Gewächs (Name, lateinischer Name, Herkunft, benötigtes Licht, Blühzeit, Notizen)
---   Typ (Name)
---   gepflanzt: Ort n—m Gewächs, mit Datum und Notizen  -> Verknüpfungstabelle
---   haben:     Gewächs n—m Typ                          -> Verknüpfungstabelle
+-- Gartenplan-Datenbank, abgeleitet aus dem ER-Modell (backend/data/ER-Modell_Gartenplan.drawio):
+--
+--   thing      Oberbegriff für alles, was im Plan platziert werden kann.
+--              Jedes thing ist genau eines von: gewaechs, objects oder shape
+--              ("gehört zu"-Beziehung, umgesetzt als gemeinsamer Primärschlüssel thing_id).
+--   gewaechs   Pflanze (name, lateinischer_name, herkunft, benoetigtes_licht, bluehzeit, typ, notizen)
+--   objects    Gegenstand im Garten (name, notizen), z. B. Bank, Regentonne
+--   shape      Rechteckige Form (width, height, notizen), z. B. zum Markieren einer Fläche
+--   icon       Hochgeladenes, rund zugeschnittenes Bild (dateiname, erstellt_am);
+--              gewaechs und objects "haben" optional ein icon
+--   ort        Position im Gartenplan (x_koordinate, y_koordinate, bereich)
+--   platziert  Beziehung thing n—m ort mit datum und notizen
+--
+-- Alle CREATE-Anweisungen sind mit IF NOT EXISTS abgesichert, das Schema kann
+-- also gefahrlos mehrfach eingespielt werden (npm run db:init).
+-- Für Datenbanken mit der alten Struktur (gewaechs.id, gepflanzt, typ):
+-- npm run db:migrate übernimmt die vorhandenen Daten.
 
+-- Hochgeladene Icons. Die Bilddatei liegt unter backend/uploads/icons/<dateiname>,
+-- die Datenbank speichert nur die Metadaten.
+CREATE TABLE IF NOT EXISTS icon (
+  id           SERIAL PRIMARY KEY,
+  dateiname    TEXT NOT NULL UNIQUE,
+  erstellt_am  TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Obertabelle: vergibt die thing_id, die von genau einer Subtyp-Tabelle genutzt wird
+CREATE TABLE IF NOT EXISTS thing (
+  thing_id  SERIAL PRIMARY KEY
+);
+
+-- Subtyp Gewächs (Pflanze)
+CREATE TABLE IF NOT EXISTS gewaechs (
+  thing_id           INTEGER PRIMARY KEY REFERENCES thing(thing_id) ON DELETE CASCADE,
+  icon_id            INTEGER REFERENCES icon(id) ON DELETE SET NULL,
+  name               TEXT NOT NULL,
+  lateinischer_name  TEXT,
+  herkunft           TEXT,
+  benoetigtes_licht  TEXT,
+  bluehzeit          TEXT,
+  typ                TEXT,
+  notizen            TEXT
+);
+
+-- Subtyp Objekt (Gegenstand)
+CREATE TABLE IF NOT EXISTS objects (
+  thing_id  INTEGER PRIMARY KEY REFERENCES thing(thing_id) ON DELETE CASCADE,
+  icon_id   INTEGER REFERENCES icon(id) ON DELETE SET NULL,
+  name      TEXT NOT NULL,
+  notizen   TEXT
+);
+
+-- Subtyp Form (Rechteck). width/height in Plan-Koordinaten, also derselben
+-- Einheit wie ort.x_koordinate/y_koordinate.
+CREATE TABLE IF NOT EXISTS shape (
+  thing_id  INTEGER PRIMARY KEY REFERENCES thing(thing_id) ON DELETE CASCADE,
+  width     DOUBLE PRECISION NOT NULL,
+  height    DOUBLE PRECISION NOT NULL,
+  notizen   TEXT
+);
+
+-- Ort im Plan. bereich ist die Hotspot-ID des Areals (z. B. "gewaechshaus").
 CREATE TABLE IF NOT EXISTS ort (
   id            SERIAL PRIMARY KEY,
   x_koordinate  DOUBLE PRECISION NOT NULL,
@@ -12,70 +67,16 @@ CREATE TABLE IF NOT EXISTS ort (
   bereich       TEXT
 );
 
--- Für Datenbanken, die vor Einführung der Spalte angelegt wurden
-ALTER TABLE ort ADD COLUMN IF NOT EXISTS bereich TEXT;
-
--- Hochgeladene Icons (runde Bildausschnitte). Die Bilddatei liegt unter
--- backend/uploads/icons/<dateiname>, die Datenbank speichert nur die Metadaten.
-CREATE TABLE IF NOT EXISTS icon (
-  id           SERIAL PRIMARY KEY,
-  name         TEXT NOT NULL,
-  dateiname    TEXT NOT NULL UNIQUE,
-  erstellt_am  TIMESTAMPTZ NOT NULL DEFAULT now()
+-- Beziehung "platziert": welches thing steht wo (und seit wann)
+CREATE TABLE IF NOT EXISTS platziert (
+  id        SERIAL PRIMARY KEY,
+  thing_id  INTEGER NOT NULL REFERENCES thing(thing_id) ON DELETE CASCADE,
+  ort_id    INTEGER NOT NULL REFERENCES ort(id) ON DELETE CASCADE,
+  datum     DATE,
+  notizen   TEXT,
+  UNIQUE (thing_id, ort_id)
 );
 
-CREATE TABLE IF NOT EXISTS gewaechs (
-  id                 SERIAL PRIMARY KEY,
-  name               TEXT NOT NULL,
-  lateinischer_name  TEXT,
-  herkunft           TEXT,
-  benoetigtes_licht  TEXT,
-  bluehzeit          TEXT,
-  notizen            TEXT,
-  icon_id            INTEGER REFERENCES icon(id) ON DELETE SET NULL
-);
-
--- Für Datenbanken, die vor Einführung der Spalte angelegt wurden
-ALTER TABLE gewaechs ADD COLUMN IF NOT EXISTS icon_id INTEGER REFERENCES icon(id) ON DELETE SET NULL;
-
-CREATE TABLE IF NOT EXISTS typ (
-  id    SERIAL PRIMARY KEY,
-  name  TEXT NOT NULL UNIQUE
-);
-
--- Beziehung "gepflanzt": welches Gewächs wurde wann an welchem Ort gepflanzt
-CREATE TABLE IF NOT EXISTS gepflanzt (
-  id           SERIAL PRIMARY KEY,
-  ort_id       INTEGER NOT NULL REFERENCES ort(id) ON DELETE CASCADE,
-  gewaechs_id  INTEGER NOT NULL REFERENCES gewaechs(id) ON DELETE CASCADE,
-  datum        DATE,
-  notizen      TEXT
-);
-
--- Beziehung "haben": welche Typen ein Gewächs hat
-CREATE TABLE IF NOT EXISTS gewaechs_typ (
-  gewaechs_id  INTEGER NOT NULL REFERENCES gewaechs(id) ON DELETE CASCADE,
-  typ_id       INTEGER NOT NULL REFERENCES typ(id) ON DELETE CASCADE,
-  PRIMARY KEY (gewaechs_id, typ_id)
-);
-
--- objects
-CREATE TABLE IF NOT EXISTS objects{
-  objects_id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-}
-
--- location of the objects
-
-
--- form but only have square
-CREATE TABLE IF NOT EXISTS form{
-  form_id SERIAL PRIMARY KEY,
-  name TEXT NOT NULL,
-  length_cm INTEGER,
-  height_cm INTEGER,
-}
-
-CREATE INDEX IF NOT EXISTS idx_gepflanzt_ort ON gepflanzt(ort_id);
-CREATE INDEX IF NOT EXISTS idx_gepflanzt_gewaechs ON gepflanzt(gewaechs_id);
+CREATE INDEX IF NOT EXISTS idx_platziert_thing ON platziert(thing_id);
+CREATE INDEX IF NOT EXISTS idx_platziert_ort ON platziert(ort_id);
 CREATE INDEX IF NOT EXISTS idx_ort_bereich ON ort(bereich);
